@@ -20,12 +20,12 @@ CDC JSONL
 ```
 
 Unity Catalog schemas:
-- `workspace.approvalmax_v2_bronze`
-- `workspace.approvalmax_v2_silver`
-- `workspace.approvalmax_v2_vault`
-- `workspace.approvalmax_v2_gold`
-- `workspace.approvalmax_v2_quarantine`
-- `workspace.approvalmax_v2_monitoring`
+- `approvalmax_ai_platform.bronze`
+- `approvalmax_ai_platform.silver`
+- `approvalmax_ai_platform.vault`
+- `approvalmax_ai_platform.gold`
+- `approvalmax_ai_platform.quarantine`
+- `approvalmax_ai_platform.monitoring`
 
 All Databricks jobs are notebook tasks with no cluster configuration so serverless compute can be used by the workspace.
 

@@ -44,7 +44,7 @@ Fix: stop at diagnostics and require human review. Do not redefine metrics.
 
 ## great_expectations_failure
 
-Evidence: failed rows in `workspace.approvalmax_v2_monitoring.great_expectations_results`.
+Evidence: failed rows in `approvalmax_ai_platform.monitoring.great_expectations_results`.
 Fix: inspect expectation results, add quarantine/reporting, and keep critical expectations active.
 
 ## new_cdc_context_detected

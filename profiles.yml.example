@@ -3,8 +3,8 @@ approvalmax_ai_platform_v2:
   outputs:
     dev:
       type: databricks
-      catalog: workspace
-      schema: approvalmax_v2_gold
+      catalog: approvalmax_ai_platform
+      schema: gold
       host: "{{ env_var('DATABRICKS_HOST') }}"
       http_path: "/sql/1.0/warehouses/<WAREHOUSE_ID>"
       token: "{{ env_var('DATABRICKS_TOKEN') }}"

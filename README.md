@@ -29,12 +29,12 @@ Databricks CLI profile: `vim`
 
 Unity Catalog schemas:
 
-- `workspace.approvalmax_v2_bronze`
-- `workspace.approvalmax_v2_silver`
-- `workspace.approvalmax_v2_vault`
-- `workspace.approvalmax_v2_gold`
-- `workspace.approvalmax_v2_quarantine`
-- `workspace.approvalmax_v2_monitoring`
+- `approvalmax_ai_platform.bronze`
+- `approvalmax_ai_platform.silver`
+- `approvalmax_ai_platform.vault`
+- `approvalmax_ai_platform.gold`
+- `approvalmax_ai_platform.quarantine`
+- `approvalmax_ai_platform.monitoring`
 
 The workspace is serverless-only. Bundle jobs use notebook task resources without classic cluster settings.
 
@@ -83,12 +83,12 @@ This runs `src/cdc_automation_notebook.ipynb`, which:
 
 - creates the six Unity Catalog schemas
 - creates inline CDC records with `spark.createDataFrame(records)`
-- writes `workspace.approvalmax_v2_bronze.approvalmax_cdc_raw`
+- writes `approvalmax_ai_platform.bronze.approvalmax_cdc_raw`
 - builds Silver current-state tables
 - builds Vault-style hub/link/satellite tables
 - builds Gold dimensions and facts
-- writes ETL audit logs to `workspace.approvalmax_v2_monitoring.etl_audit_log`
-- writes failed quality rows to `workspace.approvalmax_v2_quarantine`
+- writes ETL audit logs to `approvalmax_ai_platform.monitoring.etl_audit_log`
+- writes failed quality rows to `approvalmax_ai_platform.quarantine`
 
 ## Run dbt
 
@@ -106,7 +106,7 @@ dbt test --profiles-dir . --target dev --select fact_approval_document_lifecycle
 The dbt Gold model builds:
 
 ```text
-workspace.approvalmax_v2_gold.fact_approval_document_lifecycle_dbt
+approvalmax_ai_platform.gold.fact_approval_document_lifecycle_dbt
 ```
 
 In GitHub Actions, `run-dbt-gold.yml` discovers an available SQL warehouse and replaces the placeholder in the generated `profiles.yml`.
@@ -120,7 +120,7 @@ databricks bundle run approvalmax_great_expectations_serverless -t dev --profile
 The validation notebook writes results to:
 
 ```text
-workspace.approvalmax_v2_monitoring.great_expectations_results
+approvalmax_ai_platform.monitoring.great_expectations_results
 ```
 
 Critical checks:

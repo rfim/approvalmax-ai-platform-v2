@@ -16,6 +16,6 @@ models:
   approvalmax_ai_platform_v2:
     gold:
       +materialized: table
-      +catalog: workspace
-      +schema: approvalmax_v2_gold
+      +catalog: approvalmax_ai_platform
+      +schema: gold
 
