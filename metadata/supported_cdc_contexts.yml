@@ -9,4 +9,31 @@ supported_contexts:
     business_key: subscription_id
   users:
     business_key: user_id
-
+  budgets:
+    business_key: budget_id
+    silver_table: budgets_current
+    gold_tables:
+    - dim_budget
+    human_review_required: true
+    status: candidate_detected_from_cdc
+  payments:
+    business_key: payment_id
+    silver_table: payments_current
+    gold_tables:
+    - dim_payment
+    human_review_required: true
+    status: candidate_detected_from_cdc
+  suppliers:
+    business_key: supplier_id
+    silver_table: suppliers_current
+    gold_tables:
+    - dim_supplier
+    human_review_required: true
+    status: candidate_detected_from_cdc
+  vendor_contracts:
+    business_key: vendor_contract_id
+    silver_table: vendor_contracts_current
+    gold_tables:
+    - dim_vendor_contract
+    human_review_required: true
+    status: candidate_detected_from_cdc
