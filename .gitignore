@@ -1,0 +1,12 @@
+.databricks/
+target/
+dbt_packages/
+logs/
+profiles.yml
+/recovery/
+.venv/
+.codex/
+auth.json
+__pycache__/
+*.pyc
+

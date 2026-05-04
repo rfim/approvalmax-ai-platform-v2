@@ -1,0 +1,26 @@
+name: Run CDC Automation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "sample_data/approvalmax_cdc/**"
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  run-cdc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: Check Databricks auth
+        run: databricks current-user me
+      - name: Validate deployed bundle config
+        run: databricks bundle validate -t dev
+      - name: Run CDC automation job
+        run: databricks bundle run approvalmax_cdc_automation_serverless -t dev
+

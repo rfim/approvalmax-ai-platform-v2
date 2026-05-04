@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: silver
+    catalog: workspace
+    schema: approvalmax_v2_silver
+    tables:
+      - name: finance_documents_current
+      - name: companies_current
+      - name: approval_events
+
+  - name: gold
+    catalog: workspace
+    schema: approvalmax_v2_gold
+    tables:
+      - name: fact_approval_document_lifecycle
+

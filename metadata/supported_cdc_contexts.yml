@@ -1,0 +1,12 @@
+supported_contexts:
+  companies:
+    business_key: company_id
+  finance_documents:
+    business_key: document_id
+  approval_events:
+    business_key: event_id
+  subscriptions:
+    business_key: subscription_id
+  users:
+    business_key: user_id
+

@@ -1,0 +1,9 @@
+resources:
+  jobs:
+    approvalmax_dashboard_refresh_serverless:
+      name: approvalmax_dashboard_refresh_serverless_${bundle.target}
+      tasks:
+        - task_key: refresh_dashboard_tables
+          notebook_task:
+            notebook_path: ../src/dashboard_refresh_notebook.ipynb
+

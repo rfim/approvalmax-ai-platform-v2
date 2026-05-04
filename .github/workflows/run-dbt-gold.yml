@@ -1,0 +1,57 @@
+name: Run dbt Gold Models
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Run CDC Automation"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - "dbt_project.yml"
+      - "packages.yml"
+      - "models/**"
+      - "profiles.yml.example"
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  dbt-gold:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: databricks/setup-cli@main
+
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-core dbt-databricks
+
+      - name: Configure dbt profile
+        run: |
+          cp profiles.yml.example profiles.yml
+          warehouse_id="$(databricks warehouses list --output json | python -c 'import json, sys; payload=json.load(sys.stdin); warehouses=payload.get("warehouses", payload if isinstance(payload, list) else []); running=[w for w in warehouses if w.get("state") == "RUNNING"]; candidates=running or warehouses; assert candidates, "No SQL warehouses found"; print(candidates[0]["id"])')"
+          python - <<PY
+          from pathlib import Path
+          path = Path("profiles.yml")
+          path.write_text(path.read_text().replace("<WAREHOUSE_ID>", "$warehouse_id"), encoding="utf-8")
+          PY
+
+      - name: Install dbt packages
+        run: dbt deps --profiles-dir .
+
+      - name: Debug dbt connection
+        run: dbt debug --profiles-dir . --target dev
+
+      - name: Compile dbt Gold model
+        run: dbt compile --profiles-dir . --target dev
+
+      - name: Run dbt Gold model
+        run: dbt run --profiles-dir . --target dev --select fact_approval_document_lifecycle_dbt
+
+      - name: Test dbt Gold model
+        run: dbt test --profiles-dir . --target dev --select fact_approval_document_lifecycle_dbt

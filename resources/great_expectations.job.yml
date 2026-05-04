@@ -1,0 +1,9 @@
+resources:
+  jobs:
+    approvalmax_great_expectations_serverless:
+      name: approvalmax_great_expectations_serverless_${bundle.target}
+      tasks:
+        - task_key: run_great_expectations
+          notebook_task:
+            notebook_path: ../src/great_expectations_notebook.ipynb
+

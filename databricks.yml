@@ -1,0 +1,13 @@
+bundle:
+  name: approvalmax_ai_platform_v2
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      profile: vim
+

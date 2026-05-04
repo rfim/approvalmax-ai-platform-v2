@@ -1,0 +1,21 @@
+name: approvalmax_ai_platform_v2
+version: "1.0.0"
+config-version: 2
+
+profile: approvalmax_ai_platform_v2
+
+model-paths:
+  - models
+
+target-path: target
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  approvalmax_ai_platform_v2:
+    gold:
+      +materialized: table
+      +catalog: workspace
+      +schema: approvalmax_v2_gold
+

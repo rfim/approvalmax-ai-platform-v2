@@ -1,0 +1,9 @@
+resources:
+  jobs:
+    approvalmax_cdc_automation_serverless:
+      name: approvalmax_cdc_automation_serverless_${bundle.target}
+      tasks:
+        - task_key: run_cdc_automation
+          notebook_task:
+            notebook_path: ../src/cdc_automation_notebook.ipynb
+

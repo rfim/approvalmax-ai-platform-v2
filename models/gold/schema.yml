@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: fact_approval_document_lifecycle_dbt
+    description: dbt-built Gold lifecycle mart for ApprovalMax-style approval analytics.
+    columns:
+      - name: document_id
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+        tests:
+          - not_null
+      - name: document_status
+        tests:
+          - accepted_values:
+              values: ['draft', 'submitted', 'approved', 'rejected', 'paid', 'cancelled']
+      - name: total_amount
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: approval_cycle_time_minutes
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "approval_cycle_time_minutes is not null"
+      - name: approval_sla_breach_flag
+        tests:
+          - accepted_values:
+              values: [0, 1]
+

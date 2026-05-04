@@ -1,0 +1,99 @@
+name: Codex Auto Fix On Failure
+
+on:
+  workflow_run:
+    workflows:
+      - Databricks Bundle CI
+      - Run CDC Automation
+      - Run dbt Gold Models
+      - Run Great Expectations
+      - Refresh Dashboard Tables
+      - Detect New CDC Contexts
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  recovery-pr:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download failed workflow logs
+        run: |
+          mkdir -p recovery
+          gh run download ${{ github.event.workflow_run.id }} --dir recovery/logs || true
+          find recovery/logs -type f -maxdepth 5 -print -exec cat {} \; > recovery/failed_workflow.log || true
+
+      - name: Create failure context
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          context = {
+              "workflow": "${{ github.event.workflow_run.name }}",
+              "run_id": "${{ github.event.workflow_run.id }}",
+              "conclusion": "${{ github.event.workflow_run.conclusion }}",
+              "safety": [
+                  "do not auto-merge",
+                  "do not print secrets",
+                  "do not disable tests",
+                  "do not change business keys or financial metrics without human review",
+              ],
+          }
+          Path("recovery").mkdir(exist_ok=True)
+          Path("recovery/failure_context.json").write_text(json.dumps(context, indent=2), encoding="utf-8")
+          PY
+
+      - name: Install Codex CLI
+        run: |
+          npm install -g @openai/codex
+          codex --version
+
+      - name: Restore Codex auth
+        run: |
+          mkdir -p "$HOME/.codex"
+          printf '%s' "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"
+          chmod 600 "$HOME/.codex/auth.json"
+          cat > "$HOME/.codex/config.toml" <<'EOF'
+          cli_auth_credentials_store = "file"
+          EOF
+
+      - name: Ask Codex for minimal recovery patch
+        continue-on-error: true
+        run: |
+          codex exec --sandbox workspace-write "
+          Follow AGENTS.md and skills/approvalmax-semi-self-recovery/SKILL.md.
+          Read recovery/failure_context.json and recovery/failed_workflow.log.
+          Create the smallest safe patch and add docs/recovery/<topic>.md.
+          Never auto-merge, print secrets, disable tests, change business keys, or redefine financial metrics.
+          "
+
+      - name: Create recovery PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "fix: add AI-draft recovery patch"
+          branch: codex/recovery-${{ github.event.workflow_run.id }}
+          title: "[AI-DRAFT] Recovery for failed workflow"
+          body: |
+            This PR was created after a workflow failure and requires human review.
+
+            Safety checklist:
+            - [ ] No secrets are printed or committed
+            - [ ] Tests and quality gates remain enabled
+            - [ ] Business keys are unchanged or explicitly approved
+            - [ ] Financial metrics are unchanged or explicitly approved
+            - [ ] Bundle/dbt/validation workflows pass
+          labels: |
+            ai-draft
+            recovery
+
