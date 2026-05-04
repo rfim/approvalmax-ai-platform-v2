@@ -9,4 +9,10 @@ supported_contexts:
     business_key: subscription_id
   users:
     business_key: user_id
-
+  payments:
+    business_key: payment_id
+    silver_table: payments_current
+    gold_tables:
+    - dim_payment
+    human_review_required: true
+    status: candidate_detected_from_cdc
