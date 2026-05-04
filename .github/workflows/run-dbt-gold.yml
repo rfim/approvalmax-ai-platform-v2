@@ -34,7 +34,7 @@ jobs:
       - name: Configure dbt profile
         run: |
           cp profiles.yml.example profiles.yml
-          warehouse_id="$(databricks warehouses list --output json | python -c 'import json, sys; payload=json.load(sys.stdin); warehouses=payload.get("warehouses", payload if isinstance(payload, list) else []); running=[w for w in warehouses if w.get("state") == "RUNNING"]; candidates=running or warehouses; assert candidates, "No SQL warehouses found"; print(candidates[0]["id"])')"
+          warehouse_id="$(databricks warehouses list --output json | python -c 'import json, sys; payload=json.load(sys.stdin); warehouses=payload if isinstance(payload, list) else payload.get("warehouses", []); running=[w for w in warehouses if w.get("state") == "RUNNING"]; candidates=running or warehouses; assert candidates, "No SQL warehouses found"; print(candidates[0]["id"])')"
           python - <<PY
           from pathlib import Path
           path = Path("profiles.yml")
