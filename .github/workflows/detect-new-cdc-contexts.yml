@@ -88,6 +88,7 @@ jobs:
           commit-message: "feat: add candidate metadata for new CDC contexts"
           branch: codex/new-cdc-contexts-${{ github.run_id }}
           title: "[AI-DRAFT] Add candidate metadata for new CDC contexts"
+          draft: true
           body: |
             New CDC `source_table` contexts were detected.
 
@@ -100,4 +101,3 @@ jobs:
           labels: |
             ai-draft
             new-cdc-context
-
