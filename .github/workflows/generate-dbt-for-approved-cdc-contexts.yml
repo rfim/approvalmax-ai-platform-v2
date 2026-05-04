@@ -1,4 +1,4 @@
-name: Generate dbt for Approved CDC Contexts
+name: Generate dbt and GE for Approved CDC Contexts
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  generate-dbt-pr:
+  generate-dbt-ge-pr:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
@@ -30,13 +30,13 @@ jobs:
         run: |
           python scripts/generate_approved_cdc_dbt.py --previous-ref HEAD^
 
-      - name: Create dbt modelling draft PR
+      - name: Create dbt and GE modelling draft PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat: add generated dbt models for approved CDC contexts"
+          commit-message: "feat: add generated dbt and GE coverage for approved CDC contexts"
           branch: codex/generated-dbt-approved-cdc-${{ github.run_id }}
-          title: "[AI-DRAFT] Generate dbt models for approved CDC contexts"
+          title: "[AI-DRAFT] Generate dbt and GE coverage for approved CDC contexts"
           draft: true
           body: |
             This PR was generated after a CDC context metadata PR was merged with approved contexts.
@@ -44,6 +44,7 @@ jobs:
             Human review checklist:
             - [ ] Confirm each generated model matches the approved CDC context grain
             - [ ] Confirm business keys match the approved metadata
+            - [ ] Confirm generated current-state tables are covered by Great Expectations-style validation
             - [ ] Confirm no financial metrics were added or redefined
             - [ ] Confirm dbt compile/run/test pass before merge
           labels: |
