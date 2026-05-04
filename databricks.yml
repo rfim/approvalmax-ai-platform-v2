@@ -8,6 +8,3 @@ targets:
   dev:
     default: true
     mode: development
-    workspace:
-      profile: vim
-
