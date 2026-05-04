@@ -222,6 +222,7 @@ def render_doc(contexts: list[tuple[str, dict]]) -> str:
         "",
         "These files were generated after human approval of CDC context metadata.",
         "The generated dbt models are conservative current-state views over Bronze raw CDC.",
+        "Great Expectations-style validation dynamically discovers generated `*_current_dbt` Gold tables.",
         "They do not redefine financial metrics, change secrets, or change business keys.",
         "",
         "| Context | Business key | dbt model |",
