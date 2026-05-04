@@ -1,0 +1,97 @@
+# New CDC Contexts Detected
+
+Candidate metadata was inferred from CDC envelopes. Human review is required before promotion beyond Bronze.
+
+```json
+{
+  "payments": {
+    "candidate_business_key": "payment_id",
+    "candidate_silver_table": "payments_current",
+    "candidate_gold_tables": [
+      "dim_payment"
+    ],
+    "human_review_required": true,
+    "files": [
+      "sample_data/approvalmax_cdc/new_context_payments_test.jsonl"
+    ],
+    "sample_records": [
+      {
+        "schema": "approvalmax_cdc_v1",
+        "source_system": "approvalmax_mock_cdc",
+        "source_table": "payments",
+        "op": "c",
+        "sequence_id": 200001,
+        "event_timestamp": "2026-05-04T12:00:00Z",
+        "ingestion_timestamp": "2026-05-04T12:00:20Z",
+        "primary_key": {
+          "payment_id": "PAY-TEST-001",
+          "company_id": "COMP-001"
+        },
+        "before": null,
+        "after": {
+          "payment_id": "PAY-TEST-001",
+          "company_id": "COMP-001",
+          "document_id": "PO-001",
+          "supplier_id": "SUP-001",
+          "payment_status": "scheduled",
+          "payment_amount": 850.25,
+          "currency": "GBP",
+          "scheduled_at": "2026-05-06T09:00:00Z",
+          "paid_at": null,
+          "created_at": "2026-05-04T12:00:00Z",
+          "updated_at": "2026-05-04T12:00:00Z"
+        },
+        "metadata": {
+          "connector": "mock_debezium_style",
+          "database": "approvalmax_operational",
+          "lsn": 200001,
+          "tx_id": "TX-020001",
+          "is_snapshot": false,
+          "note": "test_new_context_payments"
+        }
+      }
+    ]
+  },
+  "suppliers": {
+    "candidate_business_key": "supplier_id",
+    "candidate_silver_table": "suppliers_current",
+    "candidate_gold_tables": [
+      "dim_supplier"
+    ],
+    "human_review_required": true,
+    "files": [
+      "sample_data/approvalmax_cdc/test_supplier_new_context_20260504.jsonl"
+    ],
+    "sample_records": [
+      {
+        "schema": "approvalmax_cdc_v1",
+        "source_system": "approvalmax_mock_cdc",
+        "source_table": "suppliers",
+        "op": "c",
+        "sequence_id": 200201,
+        "event_timestamp": "2026-05-04T21:56:00Z",
+        "ingestion_timestamp": "2026-05-04T21:56:20Z",
+        "primary_key": {
+          "supplier_id": "SUP-002",
+          "company_id": "COMP-002"
+        },
+        "before": {},
+        "after": {
+          "supplier_id": "SUP-002",
+          "company_id": "COMP-002",
+          "supplier_name": "Demo Office Supplies",
+          "status": "active",
+          "country": "GB"
+        },
+        "metadata": {
+          "connector": "mock_debezium_style",
+          "database": "approvalmax_operational",
+          "lsn": 200201,
+          "tx_id": "TX-020201",
+          "is_snapshot": false
+        }
+      }
+    ]
+  }
+}
+```
