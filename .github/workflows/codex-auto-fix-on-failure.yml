@@ -9,6 +9,7 @@ on:
       - Run Great Expectations
       - Refresh Dashboard Tables
       - Detect New CDC Contexts
+      - Generate dbt for Approved CDC Contexts
     types: [completed]
 
 permissions:
@@ -96,4 +97,3 @@ jobs:
           labels: |
             ai-draft
             recovery
-

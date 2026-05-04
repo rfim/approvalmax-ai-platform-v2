@@ -1,6 +1,12 @@
 version: 2
 
 sources:
+  - name: bronze
+    catalog: approvalmax_ai_platform
+    schema: bronze
+    tables:
+      - name: approvalmax_cdc_raw
+
   - name: silver
     catalog: approvalmax_ai_platform
     schema: silver
@@ -14,4 +20,3 @@ sources:
     schema: gold
     tables:
       - name: fact_approval_document_lifecycle
-
