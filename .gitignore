@@ -2,6 +2,7 @@
 target/
 dbt_packages/
 logs/
+tmp/
 profiles.yml
 /recovery/
 .venv/
@@ -9,4 +10,3 @@ profiles.yml
 auth.json
 __pycache__/
 *.pyc
-
