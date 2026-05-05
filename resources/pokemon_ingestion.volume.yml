@@ -1,0 +1,7 @@
+resources:
+  volumes:
+    pokemon_ingestion:
+      catalog_name: approvalmax_ai_platform
+      schema_name: bronze
+      name: pokemon_ingestion
+      volume_type: MANAGED

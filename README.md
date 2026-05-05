@@ -91,26 +91,29 @@ This runs `src/cdc_automation_notebook.ipynb`, which:
 - writes ETL audit logs to `approvalmax_ai_platform.monitoring.etl_audit_log`
 - writes failed quality rows to `approvalmax_ai_platform.quarantine`
 
-## Run SWAPI Incremental Ingestion
+## Run Pokemon Incremental Ingestion
 
 ```bash
-databricks bundle run approvalmax_swapi_incremental_serverless -t dev --profile vim
+python scripts/fetch_random_pokemon.py --count 10 --output tmp/pokeapi_random_pokemon.jsonl
+databricks fs cp tmp/pokeapi_random_pokemon.jsonl dbfs:/Volumes/approvalmax_ai_platform/bronze/pokemon_ingestion/pokeapi_random_pokemon.jsonl --overwrite --profile vim
+databricks bundle run approvalmax_pokemon_incremental_serverless -t dev --profile vim
 ```
 
-This pulls the top 10 people from `https://swapi.dev/api/people/?page=1` into:
+The GitHub workflow pulls 10 random Pokemon from PokeAPI, uploads the JSONL to a Unity Catalog Volume, then runs a serverless Databricks job that writes:
 
 ```text
-approvalmax_ai_platform.bronze.swapi_people_raw
+approvalmax_ai_platform.bronze.pokemon_actor_raw
 ```
 
-The SWAPI workflow is incremental by `person_url` and `edited`, writes Bronze quality results to `great_expectations_results`, and creates a draft PR with candidate metadata/docs for `swapi_people` when human-reviewed modelling is needed.
+The Pokemon workflow is incremental by `pokemon_key` and fetch `run_id`, writes Great Expectations-style results to `great_expectations_results`, joins random Pokemon actors to existing users through a deterministic bridge, and creates a draft PR with candidate metadata/docs for `pokemon_actor`.
 
-Candidate modelling covers:
+Automated and candidate modelling covers:
 
-- Silver `swapi_people_current`
-- Vault `hub_swapi_person` and `sat_swapi_person_profile`
-- Gold `dim_swapi_actor`
-- reviewed Gold enrichment candidates only
+- Silver `pokemon_actors_current`
+- Silver `user_pokemon_actor_bridge`
+- Vault `hub_pokemon_actor` and `sat_pokemon_actor_profile`
+- Gold `dim_pokemon_actor`
+- Gold `fact_approval_document_lifecycle_pokemon_actor`
 - dbt current-state model generation after approval
 - Great Expectations-style generated model checks after approval
 
@@ -205,7 +208,7 @@ New contexts are marked `human_review_required: true`. Do not promote new CDC co
 - `Run Great Expectations`: runs validation after dbt succeeds.
 - `Refresh Dashboard Tables`: refreshes dashboard tables after validation succeeds.
 - `Detect New CDC Contexts`: creates candidate metadata PRs for unknown CDC contexts.
-- `Run SWAPI Incremental Ingestion`: ingests SWAPI people into Bronze and creates a candidate modelling PR.
+- `Run Pokemon Incremental Ingestion`: ingests random Pokemon actors into Bronze/Silver/Gold and creates a candidate modelling PR.
 - `Generate dbt and GE for Approved CDC Contexts`: creates dbt/GE draft PRs after approved metadata is merged.
 - `Codex Auto Fix On Failure`: creates reviewable recovery PRs for failed workflows.
 

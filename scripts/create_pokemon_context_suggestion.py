@@ -10,7 +10,7 @@ except ImportError:
 
 
 REGISTRY_PATH = Path("metadata/supported_cdc_contexts.yml")
-DOC_PATH = Path("docs/recovery/swapi_people_context.md")
+DOC_PATH = Path("docs/recovery/pokemon_actor_context.md")
 
 
 def load_registry() -> dict:
@@ -19,7 +19,6 @@ def load_registry() -> dict:
     text = REGISTRY_PATH.read_text(encoding="utf-8")
     if yaml is not None:
         return yaml.safe_load(text) or {"supported_contexts": {}}
-
     contexts: dict[str, dict[str, object]] = {}
     current_context = None
     current_list_key = None
@@ -53,7 +52,6 @@ def load_registry() -> dict:
 def dump_registry(registry: dict) -> str:
     if yaml is not None:
         return yaml.safe_dump(registry, sort_keys=False)
-
     lines = ["supported_contexts:"]
     for context, config in registry.get("supported_contexts", {}).items():
         lines.append(f"  {context}:")
@@ -61,7 +59,7 @@ def dump_registry(registry: dict) -> str:
             if isinstance(value, list):
                 lines.append(f"    {key}:")
                 for item in value:
-                    lines.append(f"    - {item}")
+                    lines.append(f"      - {item}")
             else:
                 rendered = "true" if value is True else "false" if value is False else value
                 lines.append(f"    {key}: {rendered}")
@@ -71,59 +69,56 @@ def dump_registry(registry: dict) -> str:
 def main() -> int:
     registry = load_registry()
     contexts = registry.setdefault("supported_contexts", {})
-    if "swapi_people" not in contexts:
-        contexts["swapi_people"] = {
-            "business_key": "person_url",
-            "bronze_table": "swapi_people_raw",
-            "silver_table": "swapi_people_current",
-            "vault_tables": ["hub_swapi_person", "sat_swapi_person_profile"],
-            "gold_tables": ["dim_swapi_actor"],
-            "gold_enrichment_candidates": ["dim_user_actor_enrichment"],
-            "dbt_models": ["swapi_people_current_dbt"],
+    if "pokemon_actor" not in contexts:
+        contexts["pokemon_actor"] = {
+            "business_key": "pokemon_key",
+            "bronze_table": "pokemon_actor_raw",
+            "silver_table": "pokemon_actors_current",
+            "vault_tables": ["hub_pokemon_actor", "sat_pokemon_actor_profile"],
+            "gold_tables": ["dim_pokemon_actor", "fact_approval_document_lifecycle_pokemon_actor"],
+            "gold_enrichment_candidates": ["fact_approval_document_lifecycle_pokemon_actor"],
+            "dbt_models": ["pokemon_actor_current_dbt"],
             "great_expectations": [
-                "person_url_not_null",
-                "name_not_null",
+                "pokemon_key_not_null",
+                "pokemon_name_not_null",
                 "raw_payload_not_null",
-                "person_version_grain_unique",
+                "pokemon_actor_grain_unique",
             ],
             "human_review_required": True,
-            "status": "candidate_detected_from_swapi",
+            "status": "candidate_detected_from_pokeapi",
         }
         REGISTRY_PATH.write_text(dump_registry(registry), encoding="utf-8")
 
     DOC_PATH.parent.mkdir(parents=True, exist_ok=True)
     DOC_PATH.write_text(
-        """# SWAPI People Modelling Candidate
+        """# Pokemon Actor Modelling Candidate
 
-The SWAPI incremental ingestion workflow loads the top 10 records from `https://swapi.dev/api/people/?page=1` into:
+The Pokemon incremental ingestion workflow fetches 10 random Pokemon from PokeAPI in GitHub Actions and uploads JSONL to a Unity Catalog Volume before Databricks ingestion.
 
-`approvalmax_ai_platform.bronze.swapi_people_raw`
+Bronze target:
 
-The records are treated as a new source context named `swapi_people`, where people are hypothetical actors for the demo.
+`approvalmax_ai_platform.bronze.pokemon_actor_raw`
 
-## Proposed Modelling
+## Current Automated Tables
 
-| Layer | Candidate object | Notes |
+| Layer | Object | Notes |
 | --- | --- | --- |
-| Bronze | `swapi_people_raw` | Append-only raw API payload and selected attributes |
-| Silver | `swapi_people_current` | Latest record by `person_url` and `edited` |
-| Vault | `hub_swapi_person` | Hub keyed by `person_url` |
-| Vault | `sat_swapi_person_profile` | Person profile attributes and hashdiff |
-| Gold | `dim_swapi_actor` | Curated actor/person dimension |
-| Gold enrichment | `dim_user_actor_enrichment` | Optional reviewed name match to existing user/document marts |
-| dbt | `swapi_people_current_dbt` | Generated only after approval |
-| Great Expectations | generated current-state checks | Covered by generated dbt/GE workflow after approval |
+| Bronze | `pokemon_actor_raw` | Append-only compact API payload and raw JSON |
+| Silver | `pokemon_actors_current` | Latest actor profile keyed by `pokemon_key` |
+| Silver | `user_pokemon_actor_bridge` | Deterministic bridge to existing `users_current` by row number |
+| Gold | `dim_pokemon_actor` | Demo actor dimension |
+| Gold | `fact_approval_document_lifecycle_pokemon_actor` | Non-financial enrichment of the existing lifecycle fact |
 
 ## Human Review
 
-Required before promotion beyond Bronze:
+Required before generated dbt promotion:
 
-- Confirm `person_url` as the business key.
-- Confirm whether SWAPI people should be represented as actors.
-- Confirm enrichment matching rules before changing existing Gold marts.
+- Confirm `pokemon_key` as the business key.
+- Confirm Pokemon should be treated as random demo actors.
+- Confirm actor assignment rules before expanding enrichment logic.
 - Confirm no financial metrics are added or redefined.
 
-To approve, update metadata:
+To approve generated dbt/GE coverage, update metadata:
 
 ```yaml
 status: approved_for_modelling
@@ -132,7 +127,7 @@ human_review_required: false
 """,
         encoding="utf-8",
     )
-    print("Prepared SWAPI people modelling suggestion.")
+    print("Prepared Pokemon actor modelling suggestion.")
     return 0
 
 
