@@ -124,8 +124,89 @@ def approved_contexts(current: dict, previous: dict, include_existing: bool) -> 
     return selected
 
 
-def render_model(context: str, business_key: str) -> str:
+def render_model(context: str, business_key: str, bronze_table: str = "approvalmax_cdc_raw") -> str:
     model_name = f"{safe_name(context)}_current_dbt"
+    if bronze_table == "swapi_people_raw":
+        return f"""{{{{ config(
+    materialized='table',
+    alias='{model_name}',
+    tags=['approved_cdc_context', 'generated', 'swapi']
+) }}}}
+
+-- Generated after human approval of the `{context}` source context.
+-- This model exposes a conservative current-state view from SWAPI Bronze only.
+-- It does not define financial metrics or alter business keys.
+with source_rows as (
+    select
+        {business_key},
+        map('person_url', person_url) as primary_key,
+        'swapi_people' as source_table,
+        'swapi_people_api' as cdc_schema,
+        source_system,
+        'upsert' as op,
+        cast(character_id as bigint) as sequence_id,
+        cast(edited as timestamp) as event_timestamp,
+        ingested_at as ingestion_timestamp,
+        ingested_at as _loaded_at,
+        run_id as _run_id,
+        name,
+        height,
+        mass,
+        hair_color,
+        skin_color,
+        eye_color,
+        birth_year,
+        gender,
+        homeworld,
+        films_json,
+        species_json,
+        vehicles_json,
+        starships_json,
+        raw_json as raw_cdc_payload
+    from {{{{ source('bronze', 'swapi_people_raw') }}}}
+),
+
+ranked as (
+    select
+        *,
+        row_number() over (
+            partition by {business_key}
+            order by event_timestamp desc, ingestion_timestamp desc
+        ) as row_num
+    from source_rows
+    where {business_key} is not null
+)
+
+select
+    {business_key},
+    primary_key,
+    source_table,
+    cdc_schema,
+    source_system,
+    op,
+    sequence_id,
+    event_timestamp,
+    ingestion_timestamp,
+    _loaded_at,
+    _run_id,
+    name,
+    height,
+    mass,
+    hair_color,
+    skin_color,
+    eye_color,
+    birth_year,
+    gender,
+    homeworld,
+    films_json,
+    species_json,
+    vehicles_json,
+    starships_json,
+    raw_cdc_payload
+from ranked
+where row_num = 1
+"""
+
     return f"""{{{{ config(
     materialized='table',
     alias='{model_name}',
@@ -271,7 +352,8 @@ def main() -> int:
     for context, config in contexts:
         business_key = safe_name(str(config["business_key"]))
         model_path = MODEL_DIR / f"{safe_name(context)}_current_dbt.sql"
-        model_path.write_text(render_model(context, business_key), encoding="utf-8")
+        bronze_table = str(config.get("bronze_table", "approvalmax_cdc_raw"))
+        model_path.write_text(render_model(context, business_key, bronze_table), encoding="utf-8")
 
     (MODEL_DIR / "schema.yml").write_text(render_schema(contexts), encoding="utf-8")
     DOC_PATH.parent.mkdir(parents=True, exist_ok=True)

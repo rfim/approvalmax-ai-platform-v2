@@ -82,13 +82,37 @@ databricks bundle run approvalmax_cdc_automation_serverless -t dev --profile vim
 This runs `src/cdc_automation_notebook.ipynb`, which:
 
 - creates the six Unity Catalog schemas
-- creates inline CDC records with `spark.createDataFrame(records)`
+- backfills all CDC JSONL records from `sample_data/approvalmax_cdc/*.jsonl`
+- falls back to inline CDC records only when sample files are unavailable in the deployed workspace
 - writes `approvalmax_ai_platform.bronze.approvalmax_cdc_raw`
 - builds Silver current-state tables
 - builds Vault-style hub/link/satellite tables
 - builds Gold dimensions and facts
 - writes ETL audit logs to `approvalmax_ai_platform.monitoring.etl_audit_log`
 - writes failed quality rows to `approvalmax_ai_platform.quarantine`
+
+## Run SWAPI Incremental Ingestion
+
+```bash
+databricks bundle run approvalmax_swapi_incremental_serverless -t dev --profile vim
+```
+
+This pulls the top 10 people from `https://swapi.dev/api/people/?page=1` into:
+
+```text
+approvalmax_ai_platform.bronze.swapi_people_raw
+```
+
+The SWAPI workflow is incremental by `person_url` and `edited`, writes Bronze quality results to `great_expectations_results`, and creates a draft PR with candidate metadata/docs for `swapi_people` when human-reviewed modelling is needed.
+
+Candidate modelling covers:
+
+- Silver `swapi_people_current`
+- Vault `hub_swapi_person` and `sat_swapi_person_profile`
+- Gold `dim_swapi_actor`
+- reviewed Gold enrichment candidates only
+- dbt current-state model generation after approval
+- Great Expectations-style generated model checks after approval
 
 ## Run dbt
 
@@ -181,6 +205,8 @@ New contexts are marked `human_review_required: true`. Do not promote new CDC co
 - `Run Great Expectations`: runs validation after dbt succeeds.
 - `Refresh Dashboard Tables`: refreshes dashboard tables after validation succeeds.
 - `Detect New CDC Contexts`: creates candidate metadata PRs for unknown CDC contexts.
+- `Run SWAPI Incremental Ingestion`: ingests SWAPI people into Bronze and creates a candidate modelling PR.
+- `Generate dbt and GE for Approved CDC Contexts`: creates dbt/GE draft PRs after approved metadata is merged.
 - `Codex Auto Fix On Failure`: creates reviewable recovery PRs for failed workflows.
 
 ## AI Recovery Safety

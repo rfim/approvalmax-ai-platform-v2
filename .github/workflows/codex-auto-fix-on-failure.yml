@@ -10,6 +10,7 @@ on:
       - Refresh Dashboard Tables
       - Detect New CDC Contexts
       - Generate dbt and GE for Approved CDC Contexts
+      - Run SWAPI Incremental Ingestion
     types: [completed]
 
 permissions:

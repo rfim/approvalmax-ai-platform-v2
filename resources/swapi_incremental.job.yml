@@ -1,0 +1,8 @@
+resources:
+  jobs:
+    approvalmax_swapi_incremental_serverless:
+      name: approvalmax_swapi_incremental_serverless_${bundle.target}
+      tasks:
+        - task_key: run_swapi_incremental_ingestion
+          notebook_task:
+            notebook_path: ../src/swapi_incremental_ingestion_notebook.ipynb
