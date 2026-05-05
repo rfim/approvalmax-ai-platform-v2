@@ -1,0 +1,62 @@
+name: Run SWAPI Incremental Ingestion
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  run-swapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+
+      - name: Check Databricks auth
+        run: databricks current-user me
+
+      - name: Validate deployed bundle config
+        run: databricks bundle validate -t dev
+
+      - name: Run SWAPI incremental ingestion
+        run: databricks bundle run approvalmax_swapi_incremental_serverless -t dev
+
+      - name: Create SWAPI modelling suggestion
+        run: python scripts/create_swapi_context_suggestion.py
+
+      - name: Create SWAPI candidate PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "feat: add SWAPI people CDC context candidate"
+          branch: codex/swapi-people-context-${{ github.run_id }}
+          title: "[AI-DRAFT] Add SWAPI people modelling candidate"
+          draft: true
+          body: |
+            SWAPI top-10 people were ingested into Bronze.
+
+            This PR proposes human-reviewed modelling metadata and documentation for:
+            - Silver: `swapi_people_current`
+            - Vault: `hub_swapi_person`, `sat_swapi_person_profile`
+            - Gold: `dim_swapi_actor`
+            - Gold enrichment: reviewed actor/name enrichment only
+            - dbt: generated after approval
+            - GE: generated/current-state checks after approval
+
+            Safety checklist:
+            - [ ] Confirm `person_url` as the business key
+            - [ ] Confirm SWAPI people should be treated as hypothetical actors
+            - [ ] Confirm any enrichment matching rule before changing existing Gold marts
+            - [ ] Confirm no financial metrics are changed
+          labels: |
+            ai-draft
+            swapi
+            new-cdc-context
