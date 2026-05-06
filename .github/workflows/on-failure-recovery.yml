@@ -1,16 +1,12 @@
-name: Codex Auto Fix On Failure
+name: "On workflow failure: Codex recovery PR"
 
 on:
   workflow_run:
     workflows:
-      - Databricks Bundle CI
-      - Run CDC Automation
-      - Run dbt Gold Models
-      - Run Great Expectations
-      - Refresh Dashboard Tables
-      - Detect New CDC Contexts
-      - Generate dbt and GE for Approved CDC Contexts
-      - Run Pokemon Incremental Ingestion
+      - "On push/manual: platform bundle and CDC"
+      - "On success/manual: dbt, GE, dashboard refresh"
+      - "On data/client change: propose metadata and dashboards"
+      - "On approved context/manual: generate dbt and GE"
     types: [completed]
 
 permissions:
@@ -96,5 +92,6 @@ jobs:
             - [ ] Financial metrics are unchanged or explicitly approved
             - [ ] Bundle/dbt/validation workflows pass
           labels: |
+            trigger:workflow-failure
             ai-draft
             recovery

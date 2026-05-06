@@ -1,9 +1,10 @@
-name: Run dbt Gold Models
+name: "On success/manual: dbt, GE, dashboard refresh"
 
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["Run CDC Automation"]
+    workflows:
+      - "On push/manual: platform bundle and CDC"
     types: [completed]
   push:
     branches: [main]
@@ -12,24 +13,27 @@ on:
       - "packages.yml"
       - "models/**"
       - "profiles.yml.example"
+      - ".github/workflows/on-success-quality.yml"
 
 env:
   DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
   DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
 jobs:
-  dbt-gold:
+  dbt-ge-dashboard:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: databricks/setup-cli@main
 
       - name: Install dbt
         run: |
           python -m pip install --upgrade pip
           pip install dbt-core dbt-databricks
+
+      - name: Check Databricks auth
+        run: databricks current-user me
 
       - name: Configure dbt profile
         run: |
@@ -55,3 +59,9 @@ jobs:
 
       - name: Test dbt Gold model
         run: dbt test --profiles-dir . --target dev --select fact_approval_document_lifecycle_dbt
+
+      - name: Run Great Expectations-style validation
+        run: databricks bundle run approvalmax_great_expectations_serverless -t dev
+
+      - name: Refresh dashboard-ready tables
+        run: databricks bundle run approvalmax_dashboard_refresh_serverless -t dev

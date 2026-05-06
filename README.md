@@ -167,16 +167,11 @@ Client requests live in `sample_data/client_change_requests/`. The detector comp
 
 GitHub Actions chain:
 
-- `Databricks Bundle CI`
-- `Run CDC Automation`
-- `Run dbt Gold Models`
-- `Run Great Expectations`
-- `Refresh Dashboard Tables`
-- `Detect New CDC Contexts`
-- `Detect Client Integration Changes`
-- `Generate Client Dashboard Candidate`
-- `Generate dbt and GE for Approved CDC Contexts`
-- `Codex Auto Fix On Failure`
+- `On push/manual: platform bundle and CDC`
+- `On success/manual: dbt, GE, dashboard refresh`
+- `On data/client change: propose metadata and dashboards`
+- `On approved context/manual: generate dbt and GE`
+- `On workflow failure: Codex recovery PR`
 
 ## AI Safety
 
