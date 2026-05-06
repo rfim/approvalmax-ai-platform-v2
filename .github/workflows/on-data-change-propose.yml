@@ -1,22 +1,25 @@
-name: Detect Client Integration Changes
+name: "On data/client change: propose metadata and dashboards"
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
+      - "sample_data/approvalmax_cdc/**"
       - "sample_data/client_change_requests/**"
       - "metadata/client_integrations.yml"
       - "metadata/supported_cdc_contexts.yml"
+      - "scripts/detect_new_cdc_contexts.py"
       - "scripts/detect_client_integration_changes.py"
       - "scripts/generate_dashboard_candidate.py"
+      - ".github/workflows/on-data-change-propose.yml"
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  detect:
+  propose-metadata-and-dashboards:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,28 +29,77 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyyaml
 
+      - name: Detect new CDC contexts
+        id: cdc
+        run: |
+          exit_code=0
+          python scripts/detect_new_cdc_contexts.py || exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          if [ "$exit_code" = "10" ]; then
+            echo "has_new_contexts=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$exit_code" = "0" ]; then
+            echo "has_new_contexts=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit "$exit_code"
+
       - name: Detect client integration changes
-        id: detect
+        id: clients
         run: |
           exit_code=0
           python scripts/detect_client_integration_changes.py || exit_code=$?
           echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
           if [ "$exit_code" = "10" ]; then
-            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "has_client_changes=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ "$exit_code" = "0" ]; then
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "has_client_changes=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           exit "$exit_code"
 
-      - name: Stop if no changes
-        if: steps.detect.outputs.has_changes != 'true'
-        run: echo "No client integration changes detected."
+      - name: Stop if no reviewable changes
+        if: steps.cdc.outputs.has_new_contexts != 'true' && steps.clients.outputs.has_client_changes != 'true'
+        run: echo "No new CDC or client integration changes detected."
 
-      - name: Create candidate integration metadata
-        if: steps.detect.outputs.has_changes == 'true'
+      - name: Create candidate CDC metadata and documentation
+        if: steps.cdc.outputs.has_new_contexts == 'true'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import yaml
+
+          detection = json.loads(Path("recovery/new_cdc_contexts.json").read_text())
+          registry_path = Path("metadata/supported_cdc_contexts.yml")
+          registry = yaml.safe_load(registry_path.read_text()) or {"supported_contexts": {}}
+          registry.setdefault("supported_contexts", {})
+
+          for context in detection["new_contexts"]:
+              inferred = detection["inferred"][context]
+              registry["supported_contexts"][context] = {
+                  "business_key": inferred["candidate_business_key"],
+                  "silver_table": inferred["candidate_silver_table"],
+                  "gold_tables": inferred["candidate_gold_tables"],
+                  "human_review_required": True,
+                  "status": "candidate_detected_from_cdc",
+              }
+
+          registry_path.write_text(yaml.safe_dump(registry, sort_keys=False), encoding="utf-8")
+          Path("docs/recovery").mkdir(parents=True, exist_ok=True)
+          Path("docs/recovery/new_cdc_contexts.md").write_text(
+              "# New CDC Contexts Detected\n\n"
+              "Candidate metadata was inferred from CDC envelopes. Human review is required before promotion beyond Bronze.\n\n"
+              "```json\n" + json.dumps(detection["inferred"], indent=2) + "\n```\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Create candidate client metadata
+        if: steps.clients.outputs.has_client_changes == 'true'
         run: |
           python - <<'PY'
           import json
@@ -55,11 +107,9 @@ jobs:
           import yaml
 
           detection = json.loads(Path("recovery/client_integration_change_request.json").read_text())
-
           client_registry_path = Path("metadata/client_integrations.yml")
           client_registry = yaml.safe_load(client_registry_path.read_text()) or {"clients": {}}
           client_registry.setdefault("clients", {})
-
           cdc_registry_path = Path("metadata/supported_cdc_contexts.yml")
           cdc_registry = yaml.safe_load(cdc_registry_path.read_text()) or {"supported_contexts": {}}
           cdc_registry.setdefault("supported_contexts", {})
@@ -80,7 +130,6 @@ jobs:
               docs.append(f"- Request type: `{change.get('request_type')}`")
               docs.append(f"- Required actions: `{', '.join(change['required_actions'])}`")
               docs.append("")
-
               for unknown in change.get("unknown_contexts", []):
                   source_table = unknown["source_table"]
                   cdc_registry["supported_contexts"].setdefault(
@@ -94,42 +143,38 @@ jobs:
 
           client_registry_path.write_text(yaml.safe_dump(client_registry, sort_keys=False), encoding="utf-8")
           cdc_registry_path.write_text(yaml.safe_dump(cdc_registry, sort_keys=False), encoding="utf-8")
-
           Path("docs/recovery").mkdir(parents=True, exist_ok=True)
           Path("docs/recovery/client_integration_change_request.md").write_text(
-              "\n".join(docs)
-              + "\n\n```json\n"
-              + json.dumps(detection, indent=2)
-              + "\n```\n",
+              "\n".join(docs) + "\n\n```json\n" + json.dumps(detection, indent=2) + "\n```\n",
               encoding="utf-8",
           )
           PY
 
       - name: Generate dashboard candidates
-        if: steps.detect.outputs.has_changes == 'true'
+        if: steps.clients.outputs.has_client_changes == 'true'
         run: python scripts/generate_dashboard_candidate.py
 
-      - name: Create client integration PR
-        if: steps.detect.outputs.has_changes == 'true'
+      - name: Create candidate PR
+        if: steps.cdc.outputs.has_new_contexts == 'true' || steps.clients.outputs.has_client_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "feat: add client integration change candidate"
-          branch: codex/client-integration-change-${{ github.run_id }}
-          title: "[AI-DRAFT] Add client integration change candidate"
+          commit-message: "feat: add candidate metadata for data changes"
+          branch: codex/data-change-candidate-${{ github.run_id }}
+          title: "[AI-DRAFT] Propose metadata for data/client changes"
           draft: true
           body: |
-            Client integration or feature changes were detected.
+            New CDC contexts or client integration changes were detected.
 
             Human review checklist:
+            - [ ] Confirm candidate business keys and grains
             - [ ] Confirm client identity and requested contexts
-            - [ ] Confirm business keys and grains
             - [ ] Confirm feature additions/removals and backwards compatibility
             - [ ] Confirm dashboard source tables and metrics
             - [ ] Test dashboard SQL before deployment
             - [ ] Confirm no financial metrics changed
-            - [ ] Confirm Unity Catalog permissions before client-facing use
           labels: |
+            trigger:data-change
             ai-draft
-            client-integration
+            metadata-candidate
             dashboard-candidate

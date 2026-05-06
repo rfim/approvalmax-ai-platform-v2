@@ -1,4 +1,4 @@
-name: Generate dbt and GE for Approved CDC Contexts
+name: "On approved context/manual: generate dbt and GE"
 
 on:
   workflow_dispatch:
@@ -27,8 +27,7 @@ jobs:
           pip install pyyaml
 
       - name: Generate dbt models for newly approved contexts
-        run: |
-          python scripts/generate_approved_cdc_dbt.py --previous-ref HEAD^
+        run: python scripts/generate_approved_cdc_dbt.py --previous-ref HEAD^
 
       - name: Create dbt and GE modelling draft PR
         uses: peter-evans/create-pull-request@v6
@@ -48,6 +47,7 @@ jobs:
             - [ ] Confirm no financial metrics were added or redefined
             - [ ] Confirm dbt compile/run/test pass before merge
           labels: |
+            trigger:approved-context
             ai-draft
             dbt
             approved-cdc-context

@@ -7,7 +7,7 @@ status: approved_for_modelling
 human_review_required: false
 ```
 
-After that PR is merged to `main`, GitHub Actions runs `Generate dbt and GE for Approved CDC Contexts`.
+After that PR is merged to `main`, GitHub Actions runs `On approved context/manual: generate dbt and GE`.
 The workflow creates a separate draft PR with generated dbt current-state models under `models/gold/generated/`.
 
 The generated models read from Bronze raw CDC, use the approved business key, and include basic dbt tests.

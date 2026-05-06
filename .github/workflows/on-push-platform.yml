@@ -1,4 +1,4 @@
-name: Databricks Bundle CI
+name: "On push/manual: platform bundle and CDC"
 
 on:
   workflow_dispatch:
@@ -8,18 +8,18 @@ on:
       - "databricks.yml"
       - "resources/**"
       - "src/**"
-      - ".github/workflows/databricks-bundle-ci.yml"
+      - "sample_data/approvalmax_cdc/**"
+      - ".github/workflows/on-push-platform.yml"
 
 env:
   DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
   DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
 jobs:
-  validate-and-deploy:
+  validate-deploy-run-cdc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: databricks/setup-cli@main
 
       - name: Install uv
@@ -36,3 +36,5 @@ jobs:
       - name: Deploy bundle
         run: databricks bundle deploy -t dev
 
+      - name: Run CDC automation
+        run: databricks bundle run approvalmax_cdc_automation_serverless -t dev
