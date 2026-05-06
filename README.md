@@ -157,6 +157,14 @@ python scripts/detect_new_cdc_contexts.py
 
 The detector reads `sample_data/approvalmax_cdc/*.jsonl`, compares `source_table` values with `metadata/supported_cdc_contexts.yml`, writes `recovery/new_cdc_contexts.json`, and exits with code `10` when new contexts are found.
 
+Detect client integration changes:
+
+```bash
+python scripts/detect_client_integration_changes.py
+```
+
+Client requests live in `sample_data/client_change_requests/`. The detector compares them with `metadata/client_integrations.yml`, creates reviewable candidate metadata, and can generate Databricks dashboard candidates for approved Gold and monitoring tables.
+
 GitHub Actions chain:
 
 - `Databricks Bundle CI`
@@ -165,6 +173,8 @@ GitHub Actions chain:
 - `Run Great Expectations`
 - `Refresh Dashboard Tables`
 - `Detect New CDC Contexts`
+- `Detect Client Integration Changes`
+- `Generate Client Dashboard Candidate`
 - `Generate dbt and GE for Approved CDC Contexts`
 - `Codex Auto Fix On Failure`
 

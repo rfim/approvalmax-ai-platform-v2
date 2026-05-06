@@ -1,0 +1,51 @@
+name: Generate Client Dashboard Candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install detector dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Detect client integration changes
+        run: |
+          exit_code=0
+          python scripts/detect_client_integration_changes.py || exit_code=$?
+          if [ "$exit_code" != "0" ] && [ "$exit_code" != "10" ]; then
+            exit "$exit_code"
+          fi
+
+      - name: Generate dashboard candidates
+        run: python scripts/generate_dashboard_candidate.py
+
+      - name: Create dashboard candidate PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "feat: add client dashboard candidate"
+          branch: codex/client-dashboard-candidate-${{ github.run_id }}
+          title: "[AI-DRAFT] Add client dashboard candidate"
+          draft: true
+          body: |
+            Client dashboard candidate files were generated from client change requests.
+
+            Human review checklist:
+            - [ ] Confirm dashboard audience and grain
+            - [ ] Test every dashboard SQL query in Databricks SQL
+            - [ ] Confirm source tables are Gold or monitoring only
+            - [ ] Confirm no financial metrics changed
+            - [ ] Confirm Unity Catalog permissions before deployment
+          labels: |
+            ai-draft
+            dashboard-candidate

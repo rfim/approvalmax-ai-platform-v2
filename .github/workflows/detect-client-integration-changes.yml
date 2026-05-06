@@ -1,0 +1,135 @@
+name: Detect Client Integration Changes
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "sample_data/client_change_requests/**"
+      - "metadata/client_integrations.yml"
+      - "metadata/supported_cdc_contexts.yml"
+      - "scripts/detect_client_integration_changes.py"
+      - "scripts/generate_dashboard_candidate.py"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install detector dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Detect client integration changes
+        id: detect
+        run: |
+          exit_code=0
+          python scripts/detect_client_integration_changes.py || exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          if [ "$exit_code" = "10" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$exit_code" = "0" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit "$exit_code"
+
+      - name: Stop if no changes
+        if: steps.detect.outputs.has_changes != 'true'
+        run: echo "No client integration changes detected."
+
+      - name: Create candidate integration metadata
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import yaml
+
+          detection = json.loads(Path("recovery/client_integration_change_request.json").read_text())
+
+          client_registry_path = Path("metadata/client_integrations.yml")
+          client_registry = yaml.safe_load(client_registry_path.read_text()) or {"clients": {}}
+          client_registry.setdefault("clients", {})
+
+          cdc_registry_path = Path("metadata/supported_cdc_contexts.yml")
+          cdc_registry = yaml.safe_load(cdc_registry_path.read_text()) or {"supported_contexts": {}}
+          cdc_registry.setdefault("supported_contexts", {})
+
+          docs = [
+              "# Client Integration Change Request",
+              "",
+              "Candidate metadata was generated from client change request files.",
+              "Human review is required before modelling, dashboard deployment, or feature promotion.",
+              "",
+          ]
+
+          for change in detection["changes"]:
+              client_registry["clients"][change["client_id"]] = change["candidate_client_config"]
+              docs.append(f"## {change['display_name']}")
+              docs.append("")
+              docs.append(f"- Client id: `{change['client_id']}`")
+              docs.append(f"- Request type: `{change.get('request_type')}`")
+              docs.append(f"- Required actions: `{', '.join(change['required_actions'])}`")
+              docs.append("")
+
+              for unknown in change.get("unknown_contexts", []):
+                  source_table = unknown["source_table"]
+                  cdc_registry["supported_contexts"].setdefault(
+                      source_table,
+                      {
+                          "business_key": unknown.get("candidate_business_key"),
+                          "human_review_required": True,
+                          "status": "candidate_detected_from_client_change_request",
+                      },
+                  )
+
+          client_registry_path.write_text(yaml.safe_dump(client_registry, sort_keys=False), encoding="utf-8")
+          cdc_registry_path.write_text(yaml.safe_dump(cdc_registry, sort_keys=False), encoding="utf-8")
+
+          Path("docs/recovery").mkdir(parents=True, exist_ok=True)
+          Path("docs/recovery/client_integration_change_request.md").write_text(
+              "\n".join(docs)
+              + "\n\n```json\n"
+              + json.dumps(detection, indent=2)
+              + "\n```\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Generate dashboard candidates
+        if: steps.detect.outputs.has_changes == 'true'
+        run: python scripts/generate_dashboard_candidate.py
+
+      - name: Create client integration PR
+        if: steps.detect.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "feat: add client integration change candidate"
+          branch: codex/client-integration-change-${{ github.run_id }}
+          title: "[AI-DRAFT] Add client integration change candidate"
+          draft: true
+          body: |
+            Client integration or feature changes were detected.
+
+            Human review checklist:
+            - [ ] Confirm client identity and requested contexts
+            - [ ] Confirm business keys and grains
+            - [ ] Confirm feature additions/removals and backwards compatibility
+            - [ ] Confirm dashboard source tables and metrics
+            - [ ] Test dashboard SQL before deployment
+            - [ ] Confirm no financial metrics changed
+            - [ ] Confirm Unity Catalog permissions before client-facing use
+          labels: |
+            ai-draft
+            client-integration
+            dashboard-candidate

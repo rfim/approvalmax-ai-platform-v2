@@ -1,0 +1,32 @@
+clients:
+  approvalmax_demo_client:
+    status: active
+    display_name: ApprovalMax Demo Client
+    enabled_contexts:
+      companies:
+        schema_version: approvalmax_cdc_v1
+        features:
+          company_master_data: true
+      finance_documents:
+        schema_version: approvalmax_cdc_v1
+        features:
+          purchase_orders: true
+          invoice_approval: true
+      approval_events:
+        schema_version: approvalmax_cdc_v1
+        features:
+          approval_workflows: true
+      subscriptions:
+        schema_version: approvalmax_cdc_v1
+        features:
+          billing_plan_tracking: true
+      users:
+        schema_version: approvalmax_cdc_v1
+        features:
+          approver_assignment: true
+    dashboards:
+      approval_operations:
+        status: active
+        source_tables:
+          - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+          - approvalmax_ai_platform.monitoring.dashboard_quality_status
