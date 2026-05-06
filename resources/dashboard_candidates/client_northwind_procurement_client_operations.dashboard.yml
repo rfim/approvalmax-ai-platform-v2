@@ -1,0 +1,7 @@
+# Candidate resource. Move to resources/ after dashboard SQL and permissions are reviewed.
+resources:
+  dashboards:
+    client_northwind_procurement_client_operations:
+      display_name: "[${bundle.target}] Northwind Procurement Operations"
+      file_path: ../../src/dashboards/client_northwind_procurement_client_operations.lvdash.json
+      warehouse_id: "${var.dashboard_warehouse_id}"
