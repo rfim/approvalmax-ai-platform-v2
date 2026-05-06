@@ -1,125 +1,132 @@
-# approvalmax_ai_platform_v2
+# approvalmax-ai-platform-v2
 
-`approvalmax_ai_platform_v2` is a Databricks Asset Bundle demo for an AI-native data platform patterned after ApprovalMax workflows.
+## Overview
 
-It implements a thin slice:
+This repository is a Databricks reference implementation for a production-style B2B SaaS data platform. It shows how CDC events can be landed safely, modelled through Bronze, Silver, Vault-style, and Gold layers, validated with dbt and Great Expectations-style checks, monitored through dashboard-ready tables, and extended through AI-assisted pull requests without allowing autonomous changes to business keys, financial metrics, secrets, or quality gates.
 
-```text
-CDC JSONL files
--> GitHub Actions trigger
--> Databricks Asset Bundle validation
--> Databricks serverless notebook job
--> Bronze raw CDC table
--> Silver current-state tables
--> Vault-style integration tables
--> Gold semantic marts
--> dbt Gold model and tests
--> Great Expectations-style validation
--> Dashboard-ready monitoring tables
--> Codex semi self-healing PR workflow
+## Architecture
+
+```mermaid
+graph LR
+  subgraph INGEST [Ingestion]
+    A[CDC JSONL files]
+    B[GitHub Actions trigger]
+    C[Databricks Bundle validate + deploy]
+    D[Databricks serverless notebook job]
+  end
+
+  subgraph TRANSFORM [Transformation]
+    E[Bronze — raw CDC table]
+    F[Silver — current-state tables]
+    G[Vault — hub / link / satellite]
+    H[Gold — dimensions and facts]
+  end
+
+  subgraph QUALITY [Quality and Observability]
+    I[dbt Gold model + schema tests]
+    J[Great Expectations validation]
+    K[Dashboard monitoring tables]
+  end
+
+  subgraph AI_OPS [AI-Assisted Operations]
+    L[Detect new CDC contexts → registry check]
+    M[Codex drafts metadata PR]
+    N[Human reviews and merges PR]
+    O[Generate dbt + GE for approved contexts]
+    P[Codex auto-fix on failure → recovery PR]
+    Q[Human reviews recovery PR]
+  end
+
+  A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+  A --> L --> M --> N --> O --> I
+  C --> P
+  D --> P
+  I --> P
+  J --> P
+  K --> P
+  P --> Q
+
+  style M fill:#7B2FBE,color:#fff,stroke:#5a1f8a
+  style O fill:#7B2FBE,color:#fff,stroke:#5a1f8a
+  style P fill:#7B2FBE,color:#fff,stroke:#5a1f8a
+  style N fill:#1a6e3c,color:#fff,stroke:#145530
+  style Q fill:#1a6e3c,color:#fff,stroke:#145530
+  style B fill:#1a3a5c,color:#fff,stroke:#122840
+  style C fill:#1a3a5c,color:#fff,stroke:#122840
 ```
 
-## Databricks Layout
+| Node type | Colour | Meaning |
+| --- | --- | --- |
+| AI node | Purple | Codex-generated proposal or recovery artefact |
+| Human review | Green | Required approval before promotion or merge |
+| GitHub Actions | Dark blue | CI/CD orchestration boundary |
 
-Bundle name: `approvalmax_ai_platform_v2`
+CDC JSONL files are processed by GitHub Actions, deployed as Databricks Asset Bundle resources, and executed through serverless notebook jobs. The data platform lands raw CDC records, derives curated operational models, validates Gold outputs, refreshes monitoring tables, and routes unknown source contexts through reviewable metadata pull requests.
 
-Target: `dev`
+## Design Decisions
 
-Databricks CLI profile: `vim`
+Databricks Asset Bundles are used because this scope is application-level data platform automation: jobs, notebooks, resource files, and CI/CD validation. Terraform would be better suited to account-level infrastructure, networking, identity, and cross-workspace policy.
 
-Unity Catalog schemas:
+The workspace is serverless-only, so jobs use `notebook_task` resources and avoid `new_cluster`, `job_clusters`, `existing_cluster_id`, and `spark_python_task`. Notebook code also avoids `spark.sparkContext`, keeping the implementation aligned with serverless execution constraints.
 
-- `approvalmax_ai_platform.bronze`
-- `approvalmax_ai_platform.silver`
-- `approvalmax_ai_platform.vault`
-- `approvalmax_ai_platform.gold`
-- `approvalmax_ai_platform.quarantine`
-- `approvalmax_ai_platform.monitoring`
+AI is limited to proposing changes because the important risks are semantic. Business keys, grains, financial metrics, secrets, and failed quality gates require human review before merge or deployment.
 
-The workspace is serverless-only. Bundle jobs use notebook task resources without classic cluster settings.
+## Components
 
-## Project Structure
+### Bronze
+
+Bronze stores permissive raw CDC records in `approvalmax_ai_platform.bronze`. It preserves the event envelope, source context, operation, primary key map, timestamps, metadata, and raw payload.
+
+### Silver
+
+Silver stores current-state operational tables in `approvalmax_ai_platform.silver`. It models known CDC contexts into stable tables such as companies, finance documents, approval events, subscriptions, and users.
+
+### Vault
+
+The Vault-style layer stores hubs, links, and satellites in `approvalmax_ai_platform.vault`. It is included to show how identity, relationships, and descriptive history can be separated when source domains expand.
+
+### Gold
+
+Gold stores semantic dimensions and facts in `approvalmax_ai_platform.gold`. These tables support lifecycle analytics, approval event reporting, dbt tests, validation, and dashboard consumption.
+
+### dbt
+
+dbt owns Gold semantic models and schema tests. Approved CDC contexts can generate conservative dbt model candidates after the metadata registry has been reviewed.
+
+### Monitoring
+
+Monitoring tables live in `approvalmax_ai_platform.monitoring`. They capture ETL audit logs, validation results, layer row counts, pipeline summaries, quality status, and dashboard-ready operational views.
+
+## How to Run
+
+Required GitHub secrets:
 
 ```text
-approvalmax_ai_platform_v2/
-├── databricks.yml
-├── resources/
-├── src/
-├── models/
-├── metadata/
-├── scripts/
-├── sample_data/
-├── docs/
-├── skills/
-└── .github/workflows/
+DATABRICKS_HOST
+DATABRICKS_TOKEN
+CODEX_AUTH_JSON
 ```
-
-## Required GitHub Secrets
-
-- `DATABRICKS_HOST`
-- `DATABRICKS_TOKEN`
-- `CODEX_AUTH_JSON`
 
 Optional:
 
-- `OPENAI_API_KEY`
+```text
+OPENAI_API_KEY
+```
 
-Do not commit `profiles.yml`, tokens, `.codex/auth.json`, or any generated recovery artifacts.
-
-## Deploy
+Validate and deploy:
 
 ```bash
 databricks bundle validate -t dev --profile vim
 databricks bundle deploy -t dev --profile vim
 ```
 
-## Run CDC Automation
+Run CDC automation:
 
 ```bash
 databricks bundle run approvalmax_cdc_automation_serverless -t dev --profile vim
 ```
 
-This runs `src/cdc_automation_notebook.ipynb`, which:
-
-- creates the six Unity Catalog schemas
-- backfills all CDC JSONL records from `sample_data/approvalmax_cdc/*.jsonl`
-- falls back to inline CDC records only when sample files are unavailable in the deployed workspace
-- writes `approvalmax_ai_platform.bronze.approvalmax_cdc_raw`
-- builds Silver current-state tables
-- builds Vault-style hub/link/satellite tables
-- builds Gold dimensions and facts
-- writes ETL audit logs to `approvalmax_ai_platform.monitoring.etl_audit_log`
-- writes failed quality rows to `approvalmax_ai_platform.quarantine`
-
-## Run Pokemon Incremental Ingestion
-
-```bash
-python scripts/fetch_random_pokemon.py --count 10 --output tmp/pokeapi_random_pokemon.jsonl
-databricks fs cp tmp/pokeapi_random_pokemon.jsonl dbfs:/Volumes/approvalmax_ai_platform/bronze/pokemon_ingestion/pokeapi_random_pokemon.jsonl --overwrite --profile vim
-databricks bundle run approvalmax_pokemon_incremental_serverless -t dev --profile vim
-```
-
-The GitHub workflow pulls 10 random Pokemon from PokeAPI, uploads the JSONL to a Unity Catalog Volume, then runs a serverless Databricks job that writes:
-
-```text
-approvalmax_ai_platform.bronze.pokemon_actor_raw
-```
-
-The Pokemon workflow is incremental by `pokemon_key` and fetch `run_id`, writes Great Expectations-style results to `great_expectations_results`, joins random Pokemon actors to existing users through a deterministic bridge, and creates a draft PR with candidate metadata/docs for `pokemon_actor`.
-
-Automated and candidate modelling covers:
-
-- Silver `pokemon_actors_current`
-- Silver `user_pokemon_actor_bridge`
-- Vault `hub_pokemon_actor` and `sat_pokemon_actor_profile`
-- Gold `dim_pokemon_actor`
-- Gold `fact_approval_document_lifecycle_pokemon_actor`
-- dbt current-state model generation after approval
-- Great Expectations-style generated model checks after approval
-
-## Run dbt
-
-Copy the example profile and replace `<WAREHOUSE_ID>` with a Databricks SQL warehouse ID.
+Run dbt:
 
 ```bash
 cp profiles.yml.example profiles.yml
@@ -130,89 +137,38 @@ dbt run --profiles-dir . --target dev --select fact_approval_document_lifecycle_
 dbt test --profiles-dir . --target dev --select fact_approval_document_lifecycle_dbt
 ```
 
-The dbt Gold model builds:
-
-```text
-approvalmax_ai_platform.gold.fact_approval_document_lifecycle_dbt
-```
-
-In GitHub Actions, `run-dbt-gold.yml` discovers an available SQL warehouse and replaces the placeholder in the generated `profiles.yml`.
-
-## Run Great Expectations-Style Validation
+Run Great Expectations-style validation:
 
 ```bash
 databricks bundle run approvalmax_great_expectations_serverless -t dev --profile vim
 ```
 
-The validation notebook writes results to:
-
-```text
-approvalmax_ai_platform.monitoring.great_expectations_results
-```
-
-Critical checks:
-
-- `document_id` not null
-- `company_id` not null
-- `document_status` accepted values
-- `total_amount >= 0`
-- `approval_cycle_time_minutes >= 0`
-- Gold grain unique by `document_id`
-
-## Refresh Dashboard Tables
+Refresh dashboard tables:
 
 ```bash
 databricks bundle run approvalmax_dashboard_refresh_serverless -t dev --profile vim
 ```
 
-This builds:
-
-- `dashboard_kpi_snapshot`
-- `dashboard_layer_row_counts`
-- `dashboard_pipeline_run_summary`
-- `dashboard_etl_step_timeline`
-- `dashboard_quality_status`
-- `dashboard_gold_documents`
-
-## Detect New CDC Contexts
-
-Run locally:
+Detect new CDC contexts:
 
 ```bash
 python scripts/detect_new_cdc_contexts.py
 ```
 
-The script reads `sample_data/approvalmax_cdc/*.jsonl`, compares `source_table` values with `metadata/supported_cdc_contexts.yml`, writes `recovery/new_cdc_contexts.json`, and exits:
+The detector reads `sample_data/approvalmax_cdc/*.jsonl`, compares `source_table` values with `metadata/supported_cdc_contexts.yml`, writes `recovery/new_cdc_contexts.json`, and exits with code `10` when new contexts are found.
 
-- `0` when no new contexts exist
-- `10` when new contexts exist
-- non-zero for detector errors
+GitHub Actions chain:
 
-Known candidate key inference includes:
+- `Databricks Bundle CI`
+- `Run CDC Automation`
+- `Run dbt Gold Models`
+- `Run Great Expectations`
+- `Refresh Dashboard Tables`
+- `Detect New CDC Contexts`
+- `Generate dbt and GE for Approved CDC Contexts`
+- `Codex Auto Fix On Failure`
 
-- `payments -> payment_id`
-- `payment_batches -> payment_batch_id`
-- `budgets -> budget_id`
-- `expense_claims -> expense_claim_id`
-- `vendor_contracts -> vendor_contract_id`
-- `audit_policies -> audit_policy_id`
-- `suppliers -> supplier_id`
-
-New contexts are marked `human_review_required: true`. Do not promote new CDC contexts beyond Bronze until the grain and business key are approved.
-
-## GitHub Actions Chain
-
-- `Databricks Bundle CI`: validates and deploys the bundle.
-- `Run CDC Automation`: validates and runs the deployed CDC job when CDC sample files change.
-- `Run dbt Gold Models`: runs dbt after CDC succeeds or when dbt files change.
-- `Run Great Expectations`: runs validation after dbt succeeds.
-- `Refresh Dashboard Tables`: refreshes dashboard tables after validation succeeds.
-- `Detect New CDC Contexts`: creates candidate metadata PRs for unknown CDC contexts.
-- `Run Pokemon Incremental Ingestion`: ingests random Pokemon actors into Bronze/Silver/Gold and creates a candidate modelling PR.
-- `Generate dbt and GE for Approved CDC Contexts`: creates dbt/GE draft PRs after approved metadata is merged.
-- `Codex Auto Fix On Failure`: creates reviewable recovery PRs for failed workflows.
-
-## AI Recovery Safety
+## AI Safety
 
 AI-assisted recovery is semi self-healing, not autonomous production change.
 
@@ -225,3 +181,10 @@ Rules:
 - Do not change business keys without human review.
 - Do not redefine financial metrics without human review.
 - New CDC contexts require human review before promotion beyond Bronze.
+
+## Known Gaps
+
+- No streaming ingestion. The production equivalent would use Auto Loader, Lakeflow Declarative Pipelines, or structured streaming with checkpointing.
+- No Feature Store or MLflow. The current scope is governed analytical modelling and operational recovery, not feature serving or experiment tracking.
+- The Vault layer is included for modelling completeness but is premature at three primary source domains. It becomes more valuable once cross-domain historisation and lineage justify the extra modelling surface.
+- No Unity Catalog row-level security. The production equivalent would add grants, row filters, column masks, and environment-specific access policies.
