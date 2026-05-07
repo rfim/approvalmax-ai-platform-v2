@@ -1,0 +1,14 @@
+command:
+  - streamlit
+  - run
+  - app.py
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: CLIENT_ID
+    value: "client_apex_manufacturing"
+  - name: CLIENT_DISPLAY_NAME
+    value: "Apex Manufacturing"
+  - name: USE_MOCK_BACKEND
+    value: "false"
