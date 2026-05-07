@@ -57,5 +57,15 @@
     ],
     "human_review_required": true
   },
+  "app_request": {
+    "required": true,
+    "app_type": "client_operations",
+    "framework": "streamlit",
+    "primary_tables": [
+      "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+      "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+    ],
+    "human_review_required": true
+  },
   "human_review_required": true
 }

@@ -115,6 +115,17 @@ def candidate_client_config(request: dict) -> dict:
                 "human_review_required": True,
             }
         }
+    app_request = request.get("app_request") or {}
+    if app_request.get("required"):
+        app_type = safe_id(str(app_request.get("app_type", "client_operations")))
+        config["apps"] = {
+            app_type: {
+                "status": "candidate",
+                "framework": app_request.get("framework", "streamlit"),
+                "source_tables": app_request.get("primary_tables", []),
+                "human_review_required": True,
+            }
+        }
     return config
 
 
@@ -176,6 +187,8 @@ def detect_request(request: dict, clients: dict, supported_contexts: dict) -> di
         actions.append("unknown_cdc_context")
     if (request.get("dashboard_request") or {}).get("required"):
         actions.append("dashboard_candidate_requested")
+    if (request.get("app_request") or {}).get("required"):
+        actions.append("app_candidate_requested")
 
     return {
         "request_id": request.get("request_id", client_id),
@@ -188,6 +201,7 @@ def detect_request(request: dict, clients: dict, supported_contexts: dict) -> di
         "unknown_contexts": unknown_contexts,
         "candidate_client_config": candidate_client_config(request),
         "dashboard_request": request.get("dashboard_request", {}),
+        "app_request": request.get("app_request", {}),
         "human_review_required": True,
     }
 
@@ -217,6 +231,7 @@ def main() -> int:
                     "business_key_changes_require_review": True,
                     "financial_metric_changes_allowed": False,
                     "dashboard_publish_allowed": False,
+                    "app_deploy_allowed": False,
                 },
             },
             indent=2,

@@ -10,6 +10,7 @@ Rules:
 - Do not redefine financial metrics without explicit human review.
 - New CDC contexts require human review before promotion beyond Bronze.
 - Client dashboards require SQL, metric, and Unity Catalog permission review before deployment.
+- Client Databricks Apps require SQL warehouse binding, metric, and Unity Catalog permission review before deployment.
 - Keep Bronze raw and permissive.
 - Keep recovery changes minimal and reviewable.
 - Use serverless-compatible Databricks notebook jobs only.

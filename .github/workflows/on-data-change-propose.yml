@@ -12,6 +12,7 @@ on:
       - "scripts/detect_new_cdc_contexts.py"
       - "scripts/detect_client_integration_changes.py"
       - "scripts/generate_dashboard_candidate.py"
+      - "scripts/generate_client_app_candidate.py"
       - ".github/workflows/on-data-change-propose.yml"
 
 permissions:
@@ -154,6 +155,10 @@ jobs:
         if: steps.clients.outputs.has_client_changes == 'true'
         run: python scripts/generate_dashboard_candidate.py
 
+      - name: Generate Databricks App candidates
+        if: steps.clients.outputs.has_client_changes == 'true'
+        run: python scripts/generate_client_app_candidate.py --include-active
+
       - name: Create candidate PR
         if: steps.cdc.outputs.has_new_contexts == 'true' || steps.clients.outputs.has_client_changes == 'true'
         uses: peter-evans/create-pull-request@v6
@@ -172,9 +177,11 @@ jobs:
             - [ ] Confirm feature additions/removals and backwards compatibility
             - [ ] Confirm dashboard source tables and metrics
             - [ ] Test dashboard SQL before deployment
+            - [ ] Confirm generated Databricks App SQL warehouse binding and UC permissions
             - [ ] Confirm no financial metrics changed
           labels: |
             trigger:data-change
             ai-draft
             metadata-candidate
             dashboard-candidate
+            app-candidate
