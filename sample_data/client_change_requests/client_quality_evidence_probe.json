@@ -1,0 +1,54 @@
+{
+  "request_id": "client_quality_evidence_probe",
+  "client_id": "client_quality_evidence_probe",
+  "display_name": "Quality Evidence Probe",
+  "request_type": "new_client",
+  "description": "Test request for generated PR quality evidence, including a disabled feature that should require compatibility review.",
+  "contexts": [
+    {
+      "source_table": "companies",
+      "schema_version": "approvalmax_cdc_v1",
+      "business_key": "company_id",
+      "features": {
+        "company_master_data": true
+      }
+    },
+    {
+      "source_table": "finance_documents",
+      "schema_version": "approvalmax_cdc_v1",
+      "business_key": "document_id",
+      "features": {
+        "purchase_orders": true,
+        "invoice_approval": true,
+        "legacy_csv_export": false
+      }
+    }
+  ],
+  "dashboard_request": {
+    "required": true,
+    "dashboard_type": "client_operations",
+    "grain": "company_id",
+    "primary_tables": [
+      "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+      "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+    ],
+    "requested_metrics": [
+      "document_count",
+      "approval_cycle_time_minutes",
+      "approval_sla_breach_flag",
+      "validation_status"
+    ],
+    "human_review_required": true
+  },
+  "app_request": {
+    "required": true,
+    "app_type": "client_operations",
+    "framework": "streamlit",
+    "primary_tables": [
+      "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+      "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+    ],
+    "human_review_required": true
+  },
+  "human_review_required": true
+}
