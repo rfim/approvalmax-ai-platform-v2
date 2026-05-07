@@ -133,6 +133,8 @@ def detect_request(request: dict, clients: dict, supported_contexts: dict) -> di
     client_id = safe_id(str(request["client_id"]))
     existing_client = clients.get(client_id, {})
     existing_contexts = existing_client.get("enabled_contexts", {}) if isinstance(existing_client, dict) else {}
+    existing_dashboards = existing_client.get("dashboards", {}) if isinstance(existing_client, dict) else {}
+    existing_apps = existing_client.get("apps", {}) if isinstance(existing_client, dict) else {}
     actions: list[str] = []
     unknown_contexts: list[dict] = []
     context_changes: list[dict] = []
@@ -185,9 +187,14 @@ def detect_request(request: dict, clients: dict, supported_contexts: dict) -> di
         actions.append("context_or_schema_change")
     if unknown_contexts:
         actions.append("unknown_cdc_context")
-    if (request.get("dashboard_request") or {}).get("required"):
+    dashboard_request = request.get("dashboard_request") or {}
+    dashboard_type = safe_id(str(dashboard_request.get("dashboard_type", "client_operations")))
+    if dashboard_request.get("required") and dashboard_type not in existing_dashboards:
         actions.append("dashboard_candidate_requested")
-    if (request.get("app_request") or {}).get("required"):
+
+    app_request = request.get("app_request") or {}
+    app_type = safe_id(str(app_request.get("app_type", "client_operations")))
+    if app_request.get("required") and app_type not in existing_apps:
         actions.append("app_candidate_requested")
 
     return {
