@@ -1,0 +1,7 @@
+# Candidate resource. Move to resources/ after app SQL, permissions, and tenant isolation are reviewed.
+resources:
+  apps:
+    client_apex_manufacturing_client_operations_app:
+      name: approvalmax-client-apex-manufacturing-client-operations-${bundle.target}
+      description: "Apex Manufacturing operations app"
+      source_code_path: ../../src/apps/client_apex_manufacturing_client_operations_app

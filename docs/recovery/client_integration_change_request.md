@@ -3,6 +3,12 @@
 Candidate metadata was generated from client change request files.
 Human review is required before modelling, dashboard deployment, or feature promotion.
 
+## Apex Manufacturing
+
+- Client id: `client_apex_manufacturing`
+- Request type: `new_client`
+- Required actions: `app_candidate_requested, context_or_schema_change, dashboard_candidate_requested, new_client`
+
 ## Northwind Procurement
 
 - Client id: `client_northwind_procurement`
@@ -12,8 +18,133 @@ Human review is required before modelling, dashboard deployment, or feature prom
 
 ```json
 {
-  "change_count": 1,
+  "change_count": 2,
   "changes": [
+    {
+      "request_id": "new_client_apex_manufacturing",
+      "request_file": "sample_data/client_change_requests/new_client_apex_manufacturing.json",
+      "client_id": "client_apex_manufacturing",
+      "display_name": "Apex Manufacturing",
+      "request_type": "new_client",
+      "required_actions": [
+        "app_candidate_requested",
+        "context_or_schema_change",
+        "dashboard_candidate_requested",
+        "new_client"
+      ],
+      "context_changes": [
+        {
+          "source_table": "companies",
+          "change": "context_added"
+        },
+        {
+          "source_table": "finance_documents",
+          "change": "context_added"
+        },
+        {
+          "source_table": "approval_events",
+          "change": "context_added"
+        },
+        {
+          "source_table": "users",
+          "change": "context_added"
+        }
+      ],
+      "unknown_contexts": [],
+      "candidate_client_config": {
+        "status": "candidate",
+        "display_name": "Apex Manufacturing",
+        "enabled_contexts": {
+          "companies": {
+            "schema_version": "approvalmax_cdc_v1",
+            "features": {
+              "company_master_data": true
+            },
+            "business_key": "company_id"
+          },
+          "finance_documents": {
+            "schema_version": "approvalmax_cdc_v1",
+            "features": {
+              "purchase_orders": true,
+              "invoice_approval": true,
+              "expense_claims": false
+            },
+            "business_key": "document_id"
+          },
+          "approval_events": {
+            "schema_version": "approvalmax_cdc_v1",
+            "features": {
+              "approval_workflows": true
+            },
+            "business_key": "event_id"
+          },
+          "users": {
+            "schema_version": "approvalmax_cdc_v1",
+            "features": {
+              "approver_assignment": true
+            },
+            "business_key": "user_id"
+          }
+        },
+        "human_review_required": true,
+        "source_request_id": "new_client_apex_manufacturing",
+        "dashboards": {
+          "client_operations": {
+            "status": "candidate",
+            "grain": "company_id",
+            "source_tables": [
+              "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+              "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+            ],
+            "requested_metrics": [
+              "document_count",
+              "approval_cycle_time_minutes",
+              "approval_sla_breach_flag",
+              "validation_status"
+            ],
+            "human_review_required": true
+          }
+        },
+        "apps": {
+          "client_operations": {
+            "status": "candidate",
+            "framework": "streamlit",
+            "source_tables": [
+              "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+              "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+            ],
+            "human_review_required": true
+          }
+        }
+      },
+      "dashboard_request": {
+        "required": true,
+        "dashboard_type": "client_operations",
+        "grain": "company_id",
+        "primary_tables": [
+          "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+          "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+        ],
+        "requested_metrics": [
+          "document_count",
+          "approval_cycle_time_minutes",
+          "approval_sla_breach_flag",
+          "validation_status"
+        ],
+        "human_review_required": true
+      },
+      "app_request": {
+        "required": true,
+        "app_type": "client_operations",
+        "framework": "streamlit",
+        "primary_tables": [
+          "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+          "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+        ],
+        "human_review_required": true
+      },
+      "human_review_required": true
+    },
     {
       "request_id": "new_client_procurement_dashboard",
       "request_file": "sample_data/client_change_requests/new_client_procurement_dashboard.json",
