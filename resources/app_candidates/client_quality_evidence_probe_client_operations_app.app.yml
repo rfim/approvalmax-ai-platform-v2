@@ -1,0 +1,7 @@
+# Candidate resource. Move to resources/ after app SQL, permissions, and tenant isolation are reviewed.
+resources:
+  apps:
+    client_quality_evidence_probe_client_operations_app:
+      name: approvalmax-client-quality-evidence-probe-client-operations-${bundle.target}
+      description: "Quality Evidence Probe operations app"
+      source_code_path: ../../src/apps/client_quality_evidence_probe_client_operations_app

@@ -136,3 +136,42 @@ clients:
         - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
         - approvalmax_ai_platform.monitoring.dashboard_quality_status
         human_review_required: true
+  client_quality_evidence_probe:
+    status: candidate
+    display_name: Quality Evidence Probe
+    enabled_contexts:
+      companies:
+        schema_version: approvalmax_cdc_v1
+        features:
+          company_master_data: true
+        business_key: company_id
+      finance_documents:
+        schema_version: approvalmax_cdc_v1
+        features:
+          purchase_orders: true
+          invoice_approval: true
+          legacy_csv_export: false
+        business_key: document_id
+    human_review_required: true
+    source_request_id: client_quality_evidence_probe
+    dashboards:
+      client_operations:
+        status: candidate
+        grain: company_id
+        source_tables:
+        - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+        - approvalmax_ai_platform.monitoring.dashboard_quality_status
+        requested_metrics:
+        - document_count
+        - approval_cycle_time_minutes
+        - approval_sla_breach_flag
+        - validation_status
+        human_review_required: true
+    apps:
+      client_operations:
+        status: candidate
+        framework: streamlit
+        source_tables:
+        - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+        - approvalmax_ai_platform.monitoring.dashboard_quality_status
+        human_review_required: true
