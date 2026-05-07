@@ -1,0 +1,7 @@
+# Candidate resource. Move to resources/ after app SQL, permissions, and tenant isolation are reviewed.
+resources:
+  apps:
+    approvalmax_demo_client_approval_operations_app:
+      name: approvalmax-approvalmax-demo-client-approval-operations-${bundle.target}
+      description: "ApprovalMax Demo Client operations app"
+      source_code_path: ../../src/apps/approvalmax_demo_client_approval_operations_app

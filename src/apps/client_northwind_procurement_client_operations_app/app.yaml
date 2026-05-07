@@ -1,0 +1,14 @@
+command:
+  - streamlit
+  - run
+  - app.py
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: CLIENT_ID
+    value: "client_northwind_procurement"
+  - name: CLIENT_DISPLAY_NAME
+    value: "Northwind Procurement"
+  - name: USE_MOCK_BACKEND
+    value: "false"

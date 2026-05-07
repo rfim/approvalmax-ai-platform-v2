@@ -1,0 +1,7 @@
+# Candidate resource. Move to resources/ after app SQL, permissions, and tenant isolation are reviewed.
+resources:
+  apps:
+    client_northwind_procurement_client_operations_app:
+      name: approvalmax-client-northwind-procurement-client-operations-${bundle.target}
+      description: "Northwind Procurement operations app"
+      source_code_path: ../../src/apps/client_northwind_procurement_client_operations_app
