@@ -28,15 +28,15 @@ clients:
       approval_operations:
         status: active
         source_tables:
-          - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
-          - approvalmax_ai_platform.monitoring.dashboard_quality_status
+        - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+        - approvalmax_ai_platform.monitoring.dashboard_quality_status
     apps:
       approval_operations:
         status: active
         framework: streamlit
         source_tables:
-          - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
-          - approvalmax_ai_platform.monitoring.dashboard_quality_status
+        - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+        - approvalmax_ai_platform.monitoring.dashboard_quality_status
   client_northwind_procurement:
     status: candidate
     display_name: Northwind Procurement
@@ -71,19 +71,19 @@ clients:
         status: candidate
         grain: company_id
         source_tables:
-          - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
-          - approvalmax_ai_platform.monitoring.dashboard_quality_status
+        - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+        - approvalmax_ai_platform.monitoring.dashboard_quality_status
         requested_metrics:
-          - document_count
-          - approval_cycle_time_minutes
-          - approval_sla_breach_flag
-          - validation_status
+        - document_count
+        - approval_cycle_time_minutes
+        - approval_sla_breach_flag
+        - validation_status
         human_review_required: true
     apps:
       client_operations:
         status: candidate
         framework: streamlit
         source_tables:
-          - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
-          - approvalmax_ai_platform.monitoring.dashboard_quality_status
+        - approvalmax_ai_platform.gold.fact_approval_document_lifecycle
+        - approvalmax_ai_platform.monitoring.dashboard_quality_status
         human_review_required: true

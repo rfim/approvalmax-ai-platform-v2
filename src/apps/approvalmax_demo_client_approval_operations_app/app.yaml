@@ -1,0 +1,14 @@
+command:
+  - streamlit
+  - run
+  - app.py
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: CLIENT_ID
+    value: "approvalmax_demo_client"
+  - name: CLIENT_DISPLAY_NAME
+    value: "ApprovalMax Demo Client"
+  - name: USE_MOCK_BACKEND
+    value: "false"

@@ -7,7 +7,7 @@ Human review is required before modelling, dashboard deployment, or feature prom
 
 - Client id: `client_northwind_procurement`
 - Request type: `new_client`
-- Required actions: `dashboard_candidate_requested`
+- Required actions: `app_candidate_requested, dashboard_candidate_requested`
 
 
 ```json
@@ -21,6 +21,7 @@ Human review is required before modelling, dashboard deployment, or feature prom
       "display_name": "Northwind Procurement",
       "request_type": "new_client",
       "required_actions": [
+        "app_candidate_requested",
         "dashboard_candidate_requested"
       ],
       "context_changes": [],
@@ -79,6 +80,17 @@ Human review is required before modelling, dashboard deployment, or feature prom
             ],
             "human_review_required": true
           }
+        },
+        "apps": {
+          "client_operations": {
+            "status": "candidate",
+            "framework": "streamlit",
+            "source_tables": [
+              "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+              "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+            ],
+            "human_review_required": true
+          }
         }
       },
       "dashboard_request": {
@@ -97,6 +109,16 @@ Human review is required before modelling, dashboard deployment, or feature prom
         ],
         "human_review_required": true
       },
+      "app_request": {
+        "required": true,
+        "app_type": "client_operations",
+        "framework": "streamlit",
+        "primary_tables": [
+          "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+          "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+        ],
+        "human_review_required": true
+      },
       "human_review_required": true
     }
   ],
@@ -104,7 +126,8 @@ Human review is required before modelling, dashboard deployment, or feature prom
     "auto_merge": false,
     "business_key_changes_require_review": true,
     "financial_metric_changes_allowed": false,
-    "dashboard_publish_allowed": false
+    "dashboard_publish_allowed": false,
+    "app_deploy_allowed": false
   }
 }
 ```
