@@ -7,7 +7,7 @@ Human review is required before modelling, dashboard deployment, or feature prom
 
 - Client id: `client_northwind_procurement`
 - Request type: `new_client`
-- Required actions: `context_or_schema_change, dashboard_candidate_requested, new_client`
+- Required actions: `dashboard_candidate_requested`
 
 
 ```json
@@ -21,28 +21,9 @@ Human review is required before modelling, dashboard deployment, or feature prom
       "display_name": "Northwind Procurement",
       "request_type": "new_client",
       "required_actions": [
-        "context_or_schema_change",
-        "dashboard_candidate_requested",
-        "new_client"
+        "dashboard_candidate_requested"
       ],
-      "context_changes": [
-        {
-          "source_table": "companies",
-          "change": "context_added"
-        },
-        {
-          "source_table": "finance_documents",
-          "change": "context_added"
-        },
-        {
-          "source_table": "approval_events",
-          "change": "context_added"
-        },
-        {
-          "source_table": "users",
-          "change": "context_added"
-        }
-      ],
+      "context_changes": [],
       "unknown_contexts": [],
       "candidate_client_config": {
         "status": "candidate",
