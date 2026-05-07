@@ -1,0 +1,70 @@
+{
+  "request_id": "new_client_apex_manufacturing",
+  "client_id": "client_apex_manufacturing",
+  "display_name": "Apex Manufacturing",
+  "request_type": "new_client",
+  "description": "Onboard a new manufacturing client using existing ApprovalMax CDC contexts.",
+  "contexts": [
+    {
+      "source_table": "companies",
+      "schema_version": "approvalmax_cdc_v1",
+      "business_key": "company_id",
+      "features": {
+        "company_master_data": true
+      }
+    },
+    {
+      "source_table": "finance_documents",
+      "schema_version": "approvalmax_cdc_v1",
+      "business_key": "document_id",
+      "features": {
+        "purchase_orders": true,
+        "invoice_approval": true,
+        "expense_claims": false
+      }
+    },
+    {
+      "source_table": "approval_events",
+      "schema_version": "approvalmax_cdc_v1",
+      "business_key": "event_id",
+      "features": {
+        "approval_workflows": true
+      }
+    },
+    {
+      "source_table": "users",
+      "schema_version": "approvalmax_cdc_v1",
+      "business_key": "user_id",
+      "features": {
+        "approver_assignment": true
+      }
+    }
+  ],
+  "dashboard_request": {
+    "required": true,
+    "dashboard_type": "client_operations",
+    "grain": "company_id",
+    "primary_tables": [
+      "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+      "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+    ],
+    "requested_metrics": [
+      "document_count",
+      "approval_cycle_time_minutes",
+      "approval_sla_breach_flag",
+      "validation_status"
+    ],
+    "human_review_required": true
+  },
+  "app_request": {
+    "required": true,
+    "app_type": "client_operations",
+    "framework": "streamlit",
+    "primary_tables": [
+      "approvalmax_ai_platform.gold.fact_approval_document_lifecycle",
+      "approvalmax_ai_platform.monitoring.dashboard_quality_status"
+    ],
+    "human_review_required": true
+  },
+  "human_review_required": true
+}
