@@ -1,0 +1,14 @@
+command:
+  - streamlit
+  - run
+  - app.py
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: CLIENT_ID
+    value: "client_quality_evidence_probe"
+  - name: CLIENT_DISPLAY_NAME
+    value: "Quality Evidence Probe"
+  - name: USE_MOCK_BACKEND
+    value: "false"
