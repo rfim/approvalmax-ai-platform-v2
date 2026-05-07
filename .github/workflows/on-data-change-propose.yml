@@ -94,6 +94,13 @@ jobs:
           Path("docs/recovery/new_cdc_contexts.md").write_text(
               "# New CDC Contexts Detected\n\n"
               "Candidate metadata was inferred from CDC envelopes. Human review is required before promotion beyond Bronze.\n\n"
+              "## Quality Gate\n\n"
+              f"- Status: `{detection.get('quality_gate', {}).get('status', 'unknown')}`\n"
+              f"- Critical failures: `{detection.get('quality_gate', {}).get('critical_failure_count', 0)}`\n"
+              f"- Warnings: `{detection.get('quality_gate', {}).get('warning_count', 0)}`\n\n"
+              "## Schema Evaluation\n\n"
+              "Each context includes CDC envelope checks, operation value checks, candidate business-key presence, "
+              "and sampled schema type stability.\n\n"
               "```json\n" + json.dumps(detection["inferred"], indent=2) + "\n```\n",
               encoding="utf-8",
           )
@@ -121,6 +128,12 @@ jobs:
               "Candidate metadata was generated from client change request files.",
               "Human review is required before modelling, dashboard deployment, or feature promotion.",
               "",
+              "## Quality Gate",
+              "",
+              f"- Status: `{detection.get('quality_gate', {}).get('status', 'unknown')}`",
+              f"- Critical failures: `{detection.get('quality_gate', {}).get('critical_failure_count', 0)}`",
+              f"- Warnings: `{detection.get('quality_gate', {}).get('warning_count', 0)}`",
+              "",
           ]
 
           for change in detection["changes"]:
@@ -130,6 +143,17 @@ jobs:
               docs.append(f"- Client id: `{change['client_id']}`")
               docs.append(f"- Request type: `{change.get('request_type')}`")
               docs.append(f"- Required actions: `{', '.join(change['required_actions'])}`")
+              docs.append(f"- Quality status: `{change.get('quality_evaluation', {}).get('overall_status', 'unknown')}`")
+              docs.append("")
+              docs.append("### Quality Checks")
+              docs.append("")
+              docs.append("| Check | Status | Severity | Details |")
+              docs.append("| --- | --- | --- | --- |")
+              for check in change.get("quality_evaluation", {}).get("checks", []):
+                  details = str(check.get("details", "")).replace("|", "\\|").replace("\n", " ")
+                  docs.append(
+                      f"| `{check.get('name')}` | `{check.get('status')}` | `{check.get('severity')}` | {details} |"
+                  )
               docs.append("")
               for unknown in change.get("unknown_contexts", []):
                   source_table = unknown["source_table"]
@@ -178,6 +202,7 @@ jobs:
             - [ ] Confirm dashboard source tables and metrics
             - [ ] Test dashboard SQL before deployment
             - [ ] Confirm generated Databricks App SQL warehouse binding and UC permissions
+            - [ ] Review generated quality gate, schema evaluation, and warning/critical checks
             - [ ] Confirm no financial metrics changed
           labels: |
             trigger:data-change
