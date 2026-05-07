@@ -19,6 +19,8 @@ Client integration changes are handled as metadata-first pull requests. The proc
 - New CDC contexts must not be promoted beyond Bronze until grain and business key are approved.
 - Feature removals require backwards compatibility review before downstream models change.
 - Business keys and financial metrics must not be changed without explicit approval.
+- Review generated quality checks before approving a request.
+- Critical quality failures must be resolved before generated modelling, dashboard, or app artefacts are promoted.
 - Dashboard candidates must use Gold or monitoring tables only.
 - Dashboard SQL must be tested in Databricks SQL before deployment.
 - Dashboard resources in `resources/dashboard_candidates/` are not deployed automatically.
@@ -49,3 +51,9 @@ Before deploying an app:
 3. Confirm the SQL warehouse resource binding.
 4. Confirm no financial metrics are redefined.
 5. Move the reviewed app resource into the deployed bundle resource path.
+
+## Quality Evidence
+
+Every generated client integration PR includes a quality gate summary and per-check evidence. The detector evaluates request completeness, supported request types, duplicate context declarations, business-key alignment with the CDC registry, feature removal review requirements, curated dashboard/app source tables, and supported app framework choices.
+
+For new CDC contexts, the CDC detector adds schema evaluation evidence for the sampled records: required envelope fields, operation values, candidate business-key presence, operation counts, sampled `after` field types, and type-stability warnings.
