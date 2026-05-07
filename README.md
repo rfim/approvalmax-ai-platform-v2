@@ -163,7 +163,7 @@ Detect client integration changes:
 python scripts/detect_client_integration_changes.py
 ```
 
-Client requests live in `sample_data/client_change_requests/`. The detector compares them with `metadata/client_integrations.yml`, creates reviewable candidate metadata, and can generate Databricks dashboard candidates for approved Gold and monitoring tables.
+Client requests live in `sample_data/client_change_requests/`. The detector compares them with `metadata/client_integrations.yml`, creates reviewable candidate metadata, and can generate Databricks dashboard and app candidates for approved Gold and monitoring tables.
 
 GitHub Actions chain:
 
