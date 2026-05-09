@@ -1,0 +1,14 @@
+command:
+  - streamlit
+  - run
+  - app.py
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: CLIENT_ID
+    value: "client_croydon_lidl"
+  - name: CLIENT_DISPLAY_NAME
+    value: "Croydon Lidl"
+  - name: USE_MOCK_BACKEND
+    value: "false"

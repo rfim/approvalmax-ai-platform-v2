@@ -37,3 +37,7 @@ supported_contexts:
     - dim_vendor_contract
     human_review_required: true
     status: candidate_detected_from_cdc
+  retail_store_locations:
+    business_key: store_id
+    human_review_required: true
+    status: candidate_detected_from_client_change_request
