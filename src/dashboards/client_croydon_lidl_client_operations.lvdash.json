@@ -1,31 +1,85 @@
 {
   "datasets": [
     {
-      "name": "document_summary",
-      "displayName": "Document Summary",
+      "name": "lidl_document_summary",
+      "displayName": "Lidl Document Summary",
       "queryLines": [
         "SELECT ",
         "  COUNT(*) AS document_count, ",
         "  AVG(approval_cycle_time_minutes) AS avg_approval_cycle_time_minutes, ",
-        "  SUM(approval_sla_breach_flag) AS sla_breach_count ",
+        "  SUM(approval_sla_breach_flag) AS sla_breach_count, ",
+        "  SUM(total_amount) AS total_document_value ",
         "FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle "
       ]
     },
     {
-      "name": "documents_by_status",
-      "displayName": "Documents by Status",
+      "name": "lidl_documents_by_status",
+      "displayName": "Lidl Documents by Status",
       "queryLines": [
         "SELECT ",
         "  document_status, ",
-        "  COUNT(*) AS document_count ",
+        "  COUNT(*) AS document_count, ",
+        "  SUM(total_amount) AS total_document_value, ",
+        "  AVG(approval_cycle_time_minutes) AS avg_cycle_minutes ",
         "FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle ",
         "GROUP BY document_status ",
         "ORDER BY document_count DESC "
       ]
     },
     {
-      "name": "quality_status",
-      "displayName": "Quality Status",
+      "name": "lidl_company_performance",
+      "displayName": "Lidl Company Performance",
+      "queryLines": [
+        "SELECT ",
+        "  company_id, ",
+        "  company_name, ",
+        "  COUNT(*) AS document_count, ",
+        "  SUM(total_amount) AS total_document_value, ",
+        "  AVG(approval_cycle_time_minutes) AS avg_cycle_minutes, ",
+        "  SUM(approval_sla_breach_flag) AS sla_breach_count ",
+        "FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle ",
+        "GROUP BY company_id, company_name ",
+        "ORDER BY total_document_value DESC ",
+        "LIMIT 10 "
+      ]
+    },
+    {
+      "name": "lidl_supplier_exposure",
+      "displayName": "Lidl Supplier Exposure",
+      "queryLines": [
+        "SELECT ",
+        "  supplier_name, ",
+        "  COUNT(*) AS document_count, ",
+        "  SUM(total_amount) AS total_document_value, ",
+        "  AVG(approval_cycle_time_minutes) AS avg_cycle_minutes ",
+        "FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle ",
+        "GROUP BY supplier_name ",
+        "ORDER BY total_document_value DESC ",
+        "LIMIT 10 "
+      ]
+    },
+    {
+      "name": "lidl_document_detail",
+      "displayName": "Lidl Document Detail",
+      "queryLines": [
+        "SELECT ",
+        "  document_id, ",
+        "  company_name, ",
+        "  supplier_name, ",
+        "  document_status, ",
+        "  total_amount, ",
+        "  approval_cycle_time_minutes, ",
+        "  approval_sla_breach_flag, ",
+        "  submitted_at, ",
+        "  approved_at ",
+        "FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle ",
+        "ORDER BY approved_at DESC ",
+        "LIMIT 50 "
+      ]
+    },
+    {
+      "name": "lidl_quality_status",
+      "displayName": "Lidl Quality Status",
       "queryLines": [
         "SELECT ",
         "  expectation_name, ",
@@ -42,7 +96,7 @@
   "pages": [
     {
       "name": "overview",
-      "displayName": "Overview",
+      "displayName": "Croydon Lidl",
       "pageType": "PAGE_TYPE_CANVAS",
       "layout": [
         {
@@ -66,7 +120,7 @@
             "name": "subtitle",
             "multilineTextboxSpec": {
               "lines": [
-                "Review candidate dashboard. Queries use reviewed Gold and monitoring tables only."
+                "Client-specific approval operations view using reviewed Gold lifecycle metrics and monitoring quality gates."
               ]
             }
           },
@@ -84,7 +138,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "document_summary",
+                  "datasetName": "lidl_document_summary",
                   "fields": [
                     {
                       "name": "document_count",
@@ -119,12 +173,52 @@
         },
         {
           "widget": {
+            "name": "total-document-value",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lidl_document_summary",
+                  "fields": [
+                    {
+                      "name": "total_document_value",
+                      "expression": "`total_document_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_document_value",
+                  "displayName": "Document Value"
+                }
+              },
+              "frame": {
+                "title": "Document Value",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
             "name": "avg-cycle-time",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "document_summary",
+                  "datasetName": "lidl_document_summary",
                   "fields": [
                     {
                       "name": "avg_approval_cycle_time_minutes",
@@ -151,46 +245,6 @@
             }
           },
           "position": {
-            "x": 2,
-            "y": 2,
-            "width": 2,
-            "height": 3
-          }
-        },
-        {
-          "widget": {
-            "name": "sla-breaches",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "document_summary",
-                  "fields": [
-                    {
-                      "name": "sla_breach_count",
-                      "expression": "`sla_breach_count`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "sla_breach_count",
-                  "displayName": "SLA Breaches"
-                }
-              },
-              "frame": {
-                "title": "SLA Breaches",
-                "showTitle": true
-              }
-            }
-          },
-          "position": {
             "x": 4,
             "y": 2,
             "width": 2,
@@ -204,7 +258,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "documents_by_status",
+                  "datasetName": "lidl_documents_by_status",
                   "fields": [
                     {
                       "name": "document_status",
@@ -247,8 +301,234 @@
           "position": {
             "x": 0,
             "y": 5,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "supplier-exposure-chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lidl_supplier_exposure",
+                  "fields": [
+                    {
+                      "name": "supplier_name",
+                      "expression": "`supplier_name`"
+                    },
+                    {
+                      "name": "total_document_value",
+                      "expression": "`total_document_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "supplier_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Supplier"
+                },
+                "y": {
+                  "fieldName": "total_document_value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Document Value"
+                }
+              },
+              "frame": {
+                "title": "Supplier Exposure",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "company-performance-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lidl_company_performance",
+                  "fields": [
+                    {
+                      "name": "company_name",
+                      "expression": "`company_name`"
+                    },
+                    {
+                      "name": "document_count",
+                      "expression": "`document_count`"
+                    },
+                    {
+                      "name": "total_document_value",
+                      "expression": "`total_document_value`"
+                    },
+                    {
+                      "name": "avg_cycle_minutes",
+                      "expression": "`avg_cycle_minutes`"
+                    },
+                    {
+                      "name": "sla_breach_count",
+                      "expression": "`sla_breach_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "company_name",
+                    "displayName": "Company"
+                  },
+                  {
+                    "fieldName": "document_count",
+                    "displayName": "Documents"
+                  },
+                  {
+                    "fieldName": "total_document_value",
+                    "displayName": "Document Value"
+                  },
+                  {
+                    "fieldName": "avg_cycle_minutes",
+                    "displayName": "Avg Cycle Minutes"
+                  },
+                  {
+                    "fieldName": "sla_breach_count",
+                    "displayName": "SLA Breaches"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Company Performance",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
             "width": 6,
             "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "document-detail-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lidl_document_detail",
+                  "fields": [
+                    {
+                      "name": "document_id",
+                      "expression": "`document_id`"
+                    },
+                    {
+                      "name": "company_name",
+                      "expression": "`company_name`"
+                    },
+                    {
+                      "name": "supplier_name",
+                      "expression": "`supplier_name`"
+                    },
+                    {
+                      "name": "document_status",
+                      "expression": "`document_status`"
+                    },
+                    {
+                      "name": "total_amount",
+                      "expression": "`total_amount`"
+                    },
+                    {
+                      "name": "approval_cycle_time_minutes",
+                      "expression": "`approval_cycle_time_minutes`"
+                    },
+                    {
+                      "name": "approval_sla_breach_flag",
+                      "expression": "`approval_sla_breach_flag`"
+                    },
+                    {
+                      "name": "approved_at",
+                      "expression": "`approved_at`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "document_id",
+                    "displayName": "Document"
+                  },
+                  {
+                    "fieldName": "company_name",
+                    "displayName": "Company"
+                  },
+                  {
+                    "fieldName": "supplier_name",
+                    "displayName": "Supplier"
+                  },
+                  {
+                    "fieldName": "document_status",
+                    "displayName": "Status"
+                  },
+                  {
+                    "fieldName": "total_amount",
+                    "displayName": "Amount"
+                  },
+                  {
+                    "fieldName": "approval_cycle_time_minutes",
+                    "displayName": "Cycle Minutes"
+                  },
+                  {
+                    "fieldName": "approval_sla_breach_flag",
+                    "displayName": "SLA Breach"
+                  },
+                  {
+                    "fieldName": "approved_at",
+                    "displayName": "Approved At"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Document Lifecycle Detail",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 6
           }
         },
         {
@@ -258,7 +538,7 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "quality_status",
+                  "datasetName": "lidl_quality_status",
                   "fields": [
                     {
                       "name": "expectation_name",
@@ -313,14 +593,14 @@
                 ]
               },
               "frame": {
-                "title": "Quality Status",
+                "title": "Governance Quality Status",
                 "showTitle": true
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 10,
+            "y": 21,
             "width": 6,
             "height": 6
           }
