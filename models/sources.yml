@@ -6,7 +6,6 @@ sources:
     schema: bronze
     tables:
       - name: approvalmax_cdc_raw
-      - name: pokemon_actor_raw
 
   - name: silver
     catalog: approvalmax_ai_platform
