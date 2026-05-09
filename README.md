@@ -6,6 +6,8 @@ This repository is a Databricks reference implementation for a production-style 
 
 ## Architecture
 
+![ApprovalMax reference architecture](docs/assets/approvalmax-architecture.png)
+
 ```mermaid
 graph LR
   subgraph INGEST [Ingestion]

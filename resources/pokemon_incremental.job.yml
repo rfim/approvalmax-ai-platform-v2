@@ -1,8 +1,0 @@
-resources:
-  jobs:
-    approvalmax_pokemon_incremental_serverless:
-      name: approvalmax_pokemon_incremental_serverless_${bundle.target}
-      tasks:
-        - task_key: run_pokemon_incremental_ingestion
-          notebook_task:
-            notebook_path: ../src/pokemon_incremental_ingestion_notebook.ipynb
