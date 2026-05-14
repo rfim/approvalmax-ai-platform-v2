@@ -2,21 +2,73 @@ name: "On push/manual: platform bundle and CDC"
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "databricks.yml"
+      - "resources/**"
+      - "src/**"
+      - "models/**"
+      - "metadata/**"
+      - "sample_data/**"
+      - "scripts/**"
+      - "docs/recovery/**"
+      - ".github/workflows/on-push-platform.yml"
   push:
     branches: [main]
     paths:
       - "databricks.yml"
       - "resources/**"
       - "src/**"
+      - "models/**"
+      - "metadata/**"
+      - "scripts/**"
+      - "docs/recovery/**"
       - "sample_data/approvalmax_cdc/**"
       - ".github/workflows/on-push-platform.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
 
 env:
   DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
   DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
 jobs:
+  automated-gdpr-soc2-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run automated GDPR and SOC 2 review
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            python scripts/compliance_change_review.py --base "origin/${{ github.base_ref }}" --head HEAD
+          else
+            python scripts/compliance_change_review.py --base HEAD~1 --head HEAD
+          fi
+
+      - name: Upload compliance review artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-change-review
+          path: |
+            recovery/compliance_change_review.json
+            recovery/compliance_change_review.md
+
+      - name: Comment compliance review on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file recovery/compliance_change_review.md
+
   validate-deploy-run-cdc:
+    if: github.event_name != 'pull_request'
+    needs: automated-gdpr-soc2-review
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
