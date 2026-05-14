@@ -1,0 +1,613 @@
+{
+  "datasets": [
+    {
+      "name": "gdpr_compliance_summary",
+      "displayName": "GDPR Compliance Summary",
+      "queryLines": [
+        "SELECT ",
+        "  (SELECT COUNT(DISTINCT company_id) FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle) AS represented_client_count, ",
+        "  (SELECT COUNT(*) FROM approvalmax_ai_platform.monitoring.tenant_change_log WHERE lower(change_type) RLIKE 'erase|erasure|forgotten|delete|deletion') AS erasure_event_count, ",
+        "  (SELECT COUNT(*) FROM approvalmax_ai_platform.monitoring.dashboard_quality_status WHERE status <> 'passed') AS open_quality_exception_count, ",
+        "  (SELECT COUNT(*) FROM approvalmax_ai_platform.monitoring.etl_audit_log WHERE status <> 'success') AS failed_processing_event_count "
+      ]
+    },
+    {
+      "name": "gdpr_individual_rights_evidence",
+      "displayName": "Individual Rights Evidence",
+      "queryLines": [
+        "WITH rights AS ( ",
+        "  SELECT 'Right of access' AS right_name, 'access|subject access|dsar' AS pattern ",
+        "  UNION ALL SELECT 'Right to rectification', 'rectification|correct|correction' ",
+        "  UNION ALL SELECT 'Right to erasure / forgotten', 'erasure|forgotten|erase|delete|deletion' ",
+        "  UNION ALL SELECT 'Right to restrict processing', 'restrict|restriction' ",
+        "  UNION ALL SELECT 'Right to data portability', 'portability|portable|export' ",
+        "  UNION ALL SELECT 'Right to object', 'object|objection' ",
+        "  UNION ALL SELECT 'Automated decision-making review', 'automated|profiling|decision' ",
+        ") ",
+        "SELECT ",
+        "  r.right_name, ",
+        "  COUNT(t.change_type) AS evidence_event_count, ",
+        "  CASE WHEN COUNT(t.change_type) > 0 THEN 'evidence_present' ELSE 'no_request_evidence' END AS evidence_status ",
+        "FROM rights r ",
+        "LEFT JOIN approvalmax_ai_platform.monitoring.tenant_change_log t ",
+        "  ON lower(concat_ws(' ', t.change_type, t.component, t.description)) RLIKE r.pattern ",
+        "GROUP BY r.right_name ",
+        "ORDER BY r.right_name "
+      ]
+    },
+    {
+      "name": "gdpr_processing_inventory",
+      "displayName": "Processing Inventory",
+      "queryLines": [
+        "SELECT ",
+        "  target_layer, ",
+        "  target_table, ",
+        "  COUNT(*) AS processing_event_count, ",
+        "  SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS successful_event_count, ",
+        "  SUM(COALESCE(failed_row_count, 0)) AS failed_row_count, ",
+        "  MAX(ended_at) AS last_processed_at ",
+        "FROM approvalmax_ai_platform.monitoring.etl_audit_log ",
+        "GROUP BY target_layer, target_table ",
+        "ORDER BY last_processed_at DESC ",
+        "LIMIT 30 "
+      ]
+    },
+    {
+      "name": "gdpr_retention_review",
+      "displayName": "Retention Review",
+      "queryLines": [
+        "SELECT ",
+        "  company_id, ",
+        "  company_name, ",
+        "  COUNT(*) AS document_count, ",
+        "  MIN(created_at) AS oldest_document_at, ",
+        "  MAX(updated_at) AS latest_update_at, ",
+        "  SUM(CASE WHEN created_at < add_months(current_date(), -84) THEN 1 ELSE 0 END) AS candidate_retention_review_count ",
+        "FROM approvalmax_ai_platform.gold.fact_approval_document_lifecycle ",
+        "GROUP BY company_id, company_name ",
+        "ORDER BY candidate_retention_review_count DESC, oldest_document_at ASC "
+      ]
+    },
+    {
+      "name": "gdpr_quality_evidence",
+      "displayName": "Quality and Accuracy Evidence",
+      "queryLines": [
+        "SELECT ",
+        "  expectation_name, ",
+        "  status, ",
+        "  severity, ",
+        "  failed_row_count, ",
+        "  checked_at, ",
+        "  details ",
+        "FROM approvalmax_ai_platform.monitoring.dashboard_quality_status ",
+        "ORDER BY checked_at DESC ",
+        "LIMIT 30 "
+      ]
+    },
+    {
+      "name": "gdpr_control_coverage",
+      "displayName": "GDPR Control Coverage",
+      "queryLines": [
+        "SELECT 'DSAR intake register' AS control_name, 'missing_source_table' AS evidence_status, 'No dedicated data subject request table exists in this bundle yet.' AS evidence_detail ",
+        "UNION ALL SELECT 'Right to be forgotten execution proof', CASE WHEN EXISTS (SELECT 1 FROM approvalmax_ai_platform.monitoring.tenant_change_log WHERE lower(change_type) RLIKE 'erase|erasure|forgotten|delete|deletion') THEN 'evidence_present' ELSE 'no_request_evidence' END, 'Uses tenant_change_log keyword evidence until a formal erasure register is modelled.' ",
+        "UNION ALL SELECT 'Consent and lawful basis register', 'missing_source_table', 'No consent/legal-basis register table exists in this bundle yet.' ",
+        "UNION ALL SELECT 'Retention schedule monitoring', 'partial_evidence', 'Uses document age from Gold lifecycle table; no policy-specific retention table exists yet.' ",
+        "UNION ALL SELECT 'Data portability fulfilment evidence', 'missing_source_table', 'No portability export/audit table exists in this bundle yet.' ",
+        "UNION ALL SELECT 'Restriction and objection handling', 'missing_source_table', 'No restriction/objection workflow table exists in this bundle yet.' ",
+        "UNION ALL SELECT 'Automated decision-making review', 'missing_source_table', 'No automated decisioning/profiling registry exists in this bundle yet.' ",
+        "UNION ALL SELECT 'Data quality and accuracy evidence', 'evidence_present', 'Uses Great Expectations-style results from monitoring.dashboard_quality_status.' "
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "GDPR Evidence",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## GDPR Compliance Evidence"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "subtitle",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Operational evidence for individual rights, erasure, processing inventory, retention review, and data quality controls. Requires DPO/legal review before deployment."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "represented-client-count",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_compliance_summary",
+                  "fields": [
+                    {
+                      "name": "represented_client_count",
+                      "expression": "`represented_client_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "represented_client_count",
+                  "displayName": "Represented Clients"
+                }
+              },
+              "frame": {
+                "title": "Represented Clients",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "erasure-event-count",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_compliance_summary",
+                  "fields": [
+                    {
+                      "name": "erasure_event_count",
+                      "expression": "`erasure_event_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "erasure_event_count",
+                  "displayName": "Erasure Events"
+                }
+              },
+              "frame": {
+                "title": "Erasure Events",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "open-quality-exceptions",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_compliance_summary",
+                  "fields": [
+                    {
+                      "name": "open_quality_exception_count",
+                      "expression": "`open_quality_exception_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "open_quality_exception_count",
+                  "displayName": "Quality Exceptions"
+                }
+              },
+              "frame": {
+                "title": "Quality Exceptions",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "individual-rights-chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_individual_rights_evidence",
+                  "fields": [
+                    {
+                      "name": "right_name",
+                      "expression": "`right_name`"
+                    },
+                    {
+                      "name": "evidence_event_count",
+                      "expression": "`evidence_event_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "right_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Individual Right"
+                },
+                "y": {
+                  "fieldName": "evidence_event_count",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Evidence Events"
+                }
+              },
+              "frame": {
+                "title": "Individual Rights Evidence",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "control-coverage-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_control_coverage",
+                  "fields": [
+                    {
+                      "name": "control_name",
+                      "expression": "`control_name`"
+                    },
+                    {
+                      "name": "evidence_status",
+                      "expression": "`evidence_status`"
+                    },
+                    {
+                      "name": "evidence_detail",
+                      "expression": "`evidence_detail`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "control_name",
+                    "displayName": "Control"
+                  },
+                  {
+                    "fieldName": "evidence_status",
+                    "displayName": "Evidence Status"
+                  },
+                  {
+                    "fieldName": "evidence_detail",
+                    "displayName": "Evidence Detail"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Control Coverage and Gaps",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "retention-review-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_retention_review",
+                  "fields": [
+                    {
+                      "name": "company_name",
+                      "expression": "`company_name`"
+                    },
+                    {
+                      "name": "document_count",
+                      "expression": "`document_count`"
+                    },
+                    {
+                      "name": "oldest_document_at",
+                      "expression": "`oldest_document_at`"
+                    },
+                    {
+                      "name": "latest_update_at",
+                      "expression": "`latest_update_at`"
+                    },
+                    {
+                      "name": "candidate_retention_review_count",
+                      "expression": "`candidate_retention_review_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "company_name",
+                    "displayName": "Client"
+                  },
+                  {
+                    "fieldName": "document_count",
+                    "displayName": "Documents"
+                  },
+                  {
+                    "fieldName": "oldest_document_at",
+                    "displayName": "Oldest Document"
+                  },
+                  {
+                    "fieldName": "latest_update_at",
+                    "displayName": "Latest Update"
+                  },
+                  {
+                    "fieldName": "candidate_retention_review_count",
+                    "displayName": "Retention Review Candidates"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Retention Review Candidates",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "processing-inventory-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_processing_inventory",
+                  "fields": [
+                    {
+                      "name": "target_layer",
+                      "expression": "`target_layer`"
+                    },
+                    {
+                      "name": "target_table",
+                      "expression": "`target_table`"
+                    },
+                    {
+                      "name": "processing_event_count",
+                      "expression": "`processing_event_count`"
+                    },
+                    {
+                      "name": "successful_event_count",
+                      "expression": "`successful_event_count`"
+                    },
+                    {
+                      "name": "failed_row_count",
+                      "expression": "`failed_row_count`"
+                    },
+                    {
+                      "name": "last_processed_at",
+                      "expression": "`last_processed_at`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "target_layer",
+                    "displayName": "Layer"
+                  },
+                  {
+                    "fieldName": "target_table",
+                    "displayName": "Table"
+                  },
+                  {
+                    "fieldName": "processing_event_count",
+                    "displayName": "Events"
+                  },
+                  {
+                    "fieldName": "successful_event_count",
+                    "displayName": "Successful"
+                  },
+                  {
+                    "fieldName": "failed_row_count",
+                    "displayName": "Failed Rows"
+                  },
+                  {
+                    "fieldName": "last_processed_at",
+                    "displayName": "Last Processed"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Processing Inventory Evidence",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 21,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "quality-evidence-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gdpr_quality_evidence",
+                  "fields": [
+                    {
+                      "name": "expectation_name",
+                      "expression": "`expectation_name`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    },
+                    {
+                      "name": "failed_row_count",
+                      "expression": "`failed_row_count`"
+                    },
+                    {
+                      "name": "checked_at",
+                      "expression": "`checked_at`"
+                    },
+                    {
+                      "name": "details",
+                      "expression": "`details`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "expectation_name",
+                    "displayName": "Expectation"
+                  },
+                  {
+                    "fieldName": "status",
+                    "displayName": "Status"
+                  },
+                  {
+                    "fieldName": "severity",
+                    "displayName": "Severity"
+                  },
+                  {
+                    "fieldName": "failed_row_count",
+                    "displayName": "Failed Rows"
+                  },
+                  {
+                    "fieldName": "checked_at",
+                    "displayName": "Checked At"
+                  },
+                  {
+                    "fieldName": "details",
+                    "displayName": "Details"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Data Quality and Accuracy Evidence",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 28,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ]
+    }
+  ]
+}
